@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>調色魔法師</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.5/gsap.min.js"></script>
+</head>
+<body>
+    <!-- 初始頁面 -->
+    <div id="initialPage" style="background: url('http://localhost/調整版/models/textures/背景.png') no-repeat center center; background-size: cover;">
+        <div id="gameTitle">
+            <img src="http://localhost/調整版/models/textures/遊戲名稱.png" alt="遊戲名稱"width="300">
+        </div>
+        <div id="logo">
+            <img src="http://localhost/調整版/models/textures/logo.png" alt="遊戲 Logo"width="200">
+        </div>
+        <div id="diceMenu">
+            <button id="dice1Button" class="dice-button" aria-label="基本版1 二次色擲骰">
+                <img src="http://localhost/調整版/models/textures/dice1.png" alt="基本版1 二次色"width="150">
+                <div class="difficulty">難度：★</div>
+            </button>
+            <button id="dice2Button" class="dice-button" aria-label="基本版2 三次色擲骰">
+                <img src="http://localhost/調整版/models/textures/dice2.png" alt="基本版2 三次色"width="150">
+                <div class="difficulty">難度：★★</div>
+            </button>
+            <button id="dice3Button" class="dice-button" aria-label="拆解版 二次色擲骰">
+                <img src="http://localhost/調整版/models/textures/dice3.png" alt="拆解版 二次色"width="150">
+                <div class="difficulty">難度：★★★</div>
+            </button>
+            <button id="dice4Button" class="dice-button" aria-label="拆解版 三次色擲骰">
+                <img src="http://localhost/調整版/models/textures/dice4.png" alt="拆解版 三次色"width="150">
+                <div class="difficulty">難度：★★★★</div>
+            </button>
+        </div>
+    </div>
+<!-- 骰子 1 頁面 -->
+<div id="dicePage1" class="dice-page" style="display: none; background: url('http://localhost/調整版/models/textures/背景1.png') no-repeat center center; background-size: cover;">
+    <!-- 返回按鈕 -->
+    <button id="backButton1" aria-label="返回初始頁面">
+        <img src="http://localhost/調整版/models/textures/返回.png" alt="返回">
+    </button>
+
+     <!-- 小遊戲logo -->
+     <div class="game-logo">
+        <img src="http://localhost/調整版/models/textures/logo小.png" alt="logo小" width="100">
+    </div>
+
+    <!-- 小遊戲標題 -->
+    <div class="game-title">
+        <img src="http://localhost/調整版/models/textures/圖片_三原色.png" alt="三原色標題" width="300">
+    </div>
+
+     <!-- 遊戲名稱logo -->
+     <div class="gameName-logo">
+        <img src="http://localhost/調整版/models/textures/遊戲名稱.png" alt="logo小" width="100">
+    </div>
+
+
+    <!-- 說明文字 -->
+    <div class="game-description">
+        <img src="http://localhost/調整版/models/textures/文字_請找出對應的二次色卡.png" alt="遊戲說明" width="500">
+    </div>
+
+    <!-- 擲骰按鈕 -->
+    <button id="throwButton1" aria-label="開始擲骰">
+        <img src="http://localhost/調整版/models/textures/開始擲骰.png" alt="開始擲骰">
+    </button>
+
+
+    <!-- 骰子渲染容器 -->
+    <div id="container1"></div>
+</div>
+
+
+<!-- 骰子 2 頁面 -->
+<div id="dicePage2" class="dice-page" style="display: none;background: url('http://localhost/調整版/models/textures/背景2.png') no-repeat center center; background-size: cover;">
+    <button id="backButton2" aria-label="返回初始頁面">
+        <img src="http://localhost/調整版/models/textures/返回.png" alt="返回">
+    </button>
+    <button id="throwButton2" aria-label="開始擲骰">
+        <img src="http://localhost/調整版/models/textures/開始擲骰.png" alt="開始擲骰">
+    </button>
+
+    <!-- 小遊戲logo -->
+    <div class="game-logo">
+        <img src="http://localhost/調整版/models/textures/logo小.png" alt="logo小" width="100">
+    </div>
+
+    <!-- 小遊戲標題 -->
+    <div class="game-title">
+        <img src="http://localhost/調整版/models/textures/圖片_三原色.png" alt="三原色標題" width="300">
+    </div>
+
+    <!-- 遊戲名稱logo -->
+    <div class="gameName-logo">
+        <img src="http://localhost/調整版/models/textures/遊戲名稱.png" alt="logo小" width="100">
+    </div>
+
+    <!-- 說明文字 -->
+    <div class="game-description">
+        <img src="http://localhost/調整版/models/textures/文字_請找出對應的三次色卡.png" alt="遊戲說明" width="500">
+    </div>
+
+    <div id="container2"></div>
+</div>
+
+<!-- 骰子 3 頁面 -->
+<div id="dicePage3" class="dice-page" style="display: none;background: url('http://localhost/調整版/models/textures/背景3.png') no-repeat center center; background-size: cover;">
+    <button id="backButton3" aria-label="返回初始頁面">
+        <img src="http://localhost/調整版/models/textures/返回.png" alt="返回">
+    </button>
+    <button id="throwButton3" aria-label="開始擲骰">
+        <img src="http://localhost/調整版/models/textures/開始擲骰.png" alt="開始擲骰">
+    </button>
+
+    <!-- 小遊戲logo -->
+    <div class="game-logo">
+        <img src="http://localhost/調整版/models/textures/logo小.png" alt="logo小" width="100">
+    </div>
+
+    <!-- 小遊戲標題 -->
+    <div class="game-title">
+        <img src="http://localhost/調整版/models/textures/圖片_二次色.png" alt="二次色標題" width="300">
+    </div>
+
+     <!-- 遊戲名稱logo -->
+     <div class="gameName-logo">
+        <img src="http://localhost/調整版/models/textures/遊戲名稱.png" alt="logo小" width="100">
+    </div>
+
+    <!-- 說明文字 -->
+    <div class="game-description">
+        <img src="http://localhost/調整版/models/textures/文字_請找出對應的三原色卡X2張.png" alt="遊戲說明" width="600">
+    </div>
+
+    <div id="container3"></div>
+</div>
+
+<!-- 骰子 4 頁面 -->
+<div id="dicePage4" class="dice-page" style="display: none;background: url('http://localhost/調整版/models/textures/背景4.png') no-repeat center center; background-size: cover;">
+    <button id="backButton4" aria-label="返回初始頁面">
+        <img src="http://localhost/調整版/models/textures/返回.png" alt="返回">
+    </button>
+    <button id="throwButton4" aria-label="開始擲骰">
+        <img src="http://localhost/調整版/models/textures/開始擲骰.png" alt="開始擲骰">
+    </button>
+
+    <!-- 小遊戲logo -->
+    <div class="game-logo">
+        <img src="http://localhost/調整版/models/textures/logo小.png" alt="logo小" width="100">
+    </div>
+
+    <!-- 小遊戲標題 -->
+    <div class="game-title">
+        <img src="http://localhost/調整版/models/textures/圖片_三次色.png" alt="三次色標題" width="300">
+    </div>
+    
+     <!-- 遊戲名稱logo -->
+     <div class="gameName-logo">
+        <img src="http://localhost/調整版/models/textures/遊戲名稱.png" alt="logo小" width="100">
+    </div>
+    <!-- 說明文字 -->
+    <div class="game-description">
+        <img src="http://localhost/調整版/models/textures/文字_請找出對應的三原色卡X3張.png" alt="遊戲說明" width="600">
+    </div>
+
+    <div id="container4"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
