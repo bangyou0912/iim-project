@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,10 +12,20 @@ public class HandCardGenerator : MonoBehaviour
 
     void Start()
     {
-        GenerateCards();
+        if (PlayerPrefs.GetInt("ShouldGenerateCards", 0) == 1)
+        {
+            PlayerPrefs.SetInt("ShouldGenerateCards", 0); // 重設
+            StartCoroutine(GenerateCardsWithDelay(1f));
+        }
     }
 
-    void GenerateCards()
+    IEnumerator GenerateCardsWithDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StartCoroutine(GenerateCards());
+    }
+
+    IEnumerator GenerateCards()
     {
         List<Texture2D> selectedTextures = new List<Texture2D>();
 
@@ -55,7 +66,14 @@ public class HandCardGenerator : MonoBehaviour
 
             RectTransform rt = card.GetComponent<RectTransform>();
             rt.anchoredPosition = new Vector2(x, y);
-            rt.rotation = Quaternion.Euler(0, 0, -angle);    
+            rt.rotation = Quaternion.Euler(0, 0, -angle);
+
+            CanvasGroup cg = card.AddComponent<CanvasGroup>();
+            cg.alpha = 0;
+
+            StartCoroutine(FadeInCard(cg));  // 淡入動畫
+
+            yield return new WaitForSeconds(0.15f);  // 每張間隔 0.15 秒（可自行調整）
 
             // 將原始角度儲存給 Hover 用
             CardHoverEffect hover = card.GetComponent<CardHoverEffect>();
@@ -65,6 +83,22 @@ public class HandCardGenerator : MonoBehaviour
             }
         }
     }
+
+    IEnumerator FadeInCard(CanvasGroup cg)
+    {
+        float duration = 0.3f;
+        float t = 0f;
+
+        while (t < duration)
+        {
+            cg.alpha = Mathf.Lerp(0, 1, t / duration);
+            t += Time.deltaTime;
+            yield return null;
+        }
+
+        cg.alpha = 1;
+    }
+
 
     void Shuffle<T>(List<T> list)
     {
