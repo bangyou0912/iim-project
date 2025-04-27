@@ -24,8 +24,17 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            PhotonNetwork.JoinLobby();
+            if(PhotonNetwork.CurrentLobby == null)
+            {
+                PhotonNetwork.JoinLobby();
+            }
         }
+    }
+
+    public override void OnConnectedToMaster()
+    {
+        print("OnConnectToMaster");
+        PhotonNetwork.JoinLobby();
     }
     public override void OnJoinedLobby()
     {
@@ -51,6 +60,7 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
         if (roomName.Length > 0 && playerName.Length > 0)
         {
             PhotonNetwork.CreateRoom(roomName);
+            PhotonNetwork.LocalPlayer.NickName = playerName;
         }
         else
         {
@@ -65,6 +75,7 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
         if (roomName.Length > 0 && playerName.Length > 0)
         {
             PhotonNetwork.JoinRoom(roomName);
+            PhotonNetwork.LocalPlayer.NickName = playerName;
         }
         else
         {

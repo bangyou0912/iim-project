@@ -15,7 +15,7 @@ public class ShowOrHideImageOnClick : MonoBehaviour
 
         if (imageObj != null)
         {
-            imageObj.SetActive(true); // 一開始圖片隱藏
+            imageObj.SetActive(false); // 一開始圖片隱藏
         }
     }
 

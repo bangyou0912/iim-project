@@ -11,6 +11,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
         TMP_Text textRoomName;
     [SerializeField]
     TMP_Text textPlayerList;
+    [SerializeField]
+    Button buttonStartGame;
     void Start()
     {
         if (PhotonNetwork.CurrentRoom == null)
@@ -20,10 +22,16 @@ public class RoomManager : MonoBehaviourPunCallbacks
         else
         {
             textRoomName.text = PhotonNetwork.CurrentRoom.Name;
+            UpdatePlayerList();
         }
-        UpdatePlayerList();
+        buttonStartGame.interactable = PhotonNetwork.IsMasterClient;
     }
-    
+
+    public override void OnMasterClientSwitched(Player newMasterClient)
+    {
+        buttonStartGame.interactable = PhotonNetwork.IsMasterClient;
+    }
+
     public void UpdatePlayerList()
     {
         StringBuilder sb = new StringBuilder();
@@ -42,5 +50,20 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public override void OnPlayerLeftRoom(Player otherPlayer)
     {
         UpdatePlayerList();
+    }
+
+    public void OnClickStartGame()
+    {
+        SceneManager.LoadScene("RulePage1");
+    }
+
+    public void OnClickLeaveGame()
+    {
+        PhotonNetwork.LeaveRoom();
+    }
+
+    public override void OnLeftRoom()
+    {
+        SceneManager.LoadScene("LobbyScene");
     }
 }
