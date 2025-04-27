@@ -327,9 +327,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 020096d6069e64622b6ec0dae876502a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  popupPanel: {fileID: 0}
-  popupImage: {fileID: 0}
-  imageToShow: {fileID: 0}
+  toggleButton: {fileID: 0}
+  imageObj: {fileID: 0}
 --- !u!1 &1063280033
 GameObject:
   m_ObjectHideFlags: 0
