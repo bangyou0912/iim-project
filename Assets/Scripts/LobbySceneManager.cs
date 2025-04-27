@@ -3,11 +3,19 @@ using Photon.Pun;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using TMPro;
+using Photon.Realtime;
+using System.Collections.Generic;
+using System.Text;
 
 public class LobbySceneManager : MonoBehaviourPunCallbacks
 {
     [SerializeField]
     TMP_InputField inputRoomName;
+    [SerializeField]
+    TMP_Text textRoomList;
+    [SerializeField]
+    TMP_InputField inputPlayerName;
+
     public void Start()
     {
         if (PhotonNetwork.IsConnected == false)
@@ -29,21 +37,57 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
         string roomName = inputRoomName.text;
         return roomName.Trim();
     }
+
+    public string GetPlayerName()
+    {
+        string playerName = inputPlayerName.text;
+        return playerName.Trim();
+    }
+
     public void OnClickCreateRoom()
     {
         string roomName = GetRoomName();
-        if (roomName.Length > 0)
+        string playerName = GetPlayerName();
+        if (roomName.Length > 0 && playerName.Length > 0)
         {
             PhotonNetwork.CreateRoom(roomName);
         }
         else
         {
-            print("Invalid Room Name!");
+            print("Invalid Room Name or Player Name !");
         }
     }
 
+    public void OnClickJoinedRoom()
+    {
+        string roomName = GetRoomName();
+        string playerName = GetPlayerName();
+        if (roomName.Length > 0 && playerName.Length > 0)
+        {
+            PhotonNetwork.JoinRoom(roomName);
+        }
+        else
+        {
+            print("Invalid Room Name or Player Name !");
+        }
+    }
     public override void OnJoinedRoom()
     {
         print("Room Joined!");
+        SceneManager.LoadScene("RoomScene");
+    }
+
+    public override void OnRoomListUpdate( List<RoomInfo> roomList)
+    {
+        print("Update!");
+        StringBuilder sb = new StringBuilder();
+        foreach(RoomInfo roomInfo in roomList)
+        {
+            if(roomInfo.PlayerCount > 0)
+            {
+                sb.AppendLine("¡÷ " + roomInfo.Name + "   ¤H¼Æ:" + roomInfo.PlayerCount);
+            }
+        }
+        textRoomList.text = sb.ToString();
     }
 }
