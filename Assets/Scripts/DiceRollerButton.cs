@@ -1,4 +1,4 @@
-using UnityEngine;
+/*using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 
@@ -73,5 +73,115 @@ public class DiceRollerButton : MonoBehaviour
         audioSource.PlayOneShot(landSound);
 
         isRolling = false;
+    }
+}
+*/
+
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class DiceRoller : MonoBehaviour
+{
+    public Sprite[] primaryDiceSprites;     // 三原色骰圖
+    public Sprite[] secondaryDiceSprites;   // 二次色骰圖
+
+    public Image diceImage;                 // 顯示動畫的 Image（DiceAnimationImage）
+    public RectTransform diceRect;
+    public GameObject darkBackground;
+    public System.Action onRollComplete;
+
+    public Vector2 centerPosition = Vector2.zero;
+    public Vector2 enlargedSize = new Vector2(500, 500);
+    public float moveTime = 0.2f;
+    public float rollDuration = 2f;
+
+    public float initialRollSpeed = 0.05f; // 一開始超快
+    public float finalRollSpeed = 0.09f;    // 最後變慢
+
+    public AudioClip rollSound;       // 骰子滾動音效
+    public AudioClip landSound;
+    private AudioSource audioSource;// 骰子落地音效
+
+    private Vector2 originalPosition;
+    private Vector2 originalSize;
+
+    private void Start()
+    {
+        audioSource = gameObject.AddComponent<AudioSource>();
+    }
+    public void RollDice(bool isPrimary)
+    {
+
+        // 根據選擇 選擇骰子圖案
+        Sprite[] selectedSprites = isPrimary ? primaryDiceSprites : secondaryDiceSprites;
+
+        // 開始播放動畫
+        StartCoroutine(PlayDiceAnimation(selectedSprites));
+        // 顯示骰子圖像
+        diceImage.gameObject.SetActive(true);
+        
+    }
+
+    IEnumerator PlayDiceAnimation(Sprite[] sprites)
+    {
+        // 將動畫拉到最上層
+        diceImage.transform.SetAsLastSibling();
+        darkBackground.SetActive(true);
+        diceImage.gameObject.SetActive(true);
+
+        // 儲存原位置
+        originalPosition = diceRect.anchoredPosition;
+        originalSize = diceRect.sizeDelta;
+
+        // 移動到中央並放大
+        float t = 0;
+        while (t < moveTime)
+        {
+            t += Time.deltaTime;
+            float p = t / moveTime;
+            diceRect.anchoredPosition = Vector2.Lerp(originalPosition, centerPosition, p);
+            diceRect.sizeDelta = Vector2.Lerp(originalSize, enlargedSize, p);
+            yield return null;
+        }
+
+        // 滾動動畫
+        float currentSpeed = initialRollSpeed;
+        float timer = 0f;
+        while (timer < rollDuration)
+        {
+            audioSource.PlayOneShot(rollSound);
+            int rand = Random.Range(0, sprites.Length);
+            diceImage.sprite = sprites[rand];
+
+            timer += currentSpeed;
+
+            currentSpeed = Mathf.Lerp(initialRollSpeed, finalRollSpeed, timer / rollDuration);
+            yield return new WaitForSeconds(currentSpeed);
+        }
+
+        // 定格結果
+
+        int result = Random.Range(0, sprites.Length);
+        diceImage.sprite = sprites[result];
+        Debug.Log("骰子結果: " + (result + 1));
+
+        audioSource.PlayOneShot(landSound);
+
+        yield return new WaitForSeconds(2f);
+
+
+        // 關閉黑色背景
+        darkBackground.SetActive(false);
+
+        diceRect.anchoredPosition = originalPosition;
+        diceRect.sizeDelta = originalSize;
+        diceImage.gameObject.SetActive(false);
+
+        if (onRollComplete != null)
+        {
+            onRollComplete.Invoke();
+        }
+
     }
 }
