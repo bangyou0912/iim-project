@@ -21,6 +21,9 @@ EditorBuildSettings:
     path: Assets/Scenes/RulePage2.unity
     guid: a3effd1efe837fb4aa1151f201c42d74
   - enabled: 1
+    path: Assets/Scenes/RulePage3.unity
+    guid: 80b405cf6799db444a80e89ad560723b
+  - enabled: 1
     path: Assets/Scenes/GameScene.unity
     guid: bd99fcd4375e1004584f49859edcd966
   m_configObjects:

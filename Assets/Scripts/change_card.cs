@@ -1,3 +1,4 @@
+using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -7,6 +8,7 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 {
     public Texture2D[] cards;
     public RawImage rawImages;
+    public Image yellow_retangular;
 
     private Vector3 originalPos;
     private Vector3 targetPos;
@@ -19,6 +21,7 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     public float scaleUp = 1.2f;
     public float speed = 10f;
     public bool IsLarged = false;
+    public bool IsRec = false;
     public float originalRotationZ = 0f;
 
     void Start()
@@ -36,17 +39,17 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     void Update()
     {
-        if (IsLarged && Input.GetKeyDown(KeyCode.Return))
+        if (IsRec && IsLarged && Input.GetKeyDown(KeyCode.Return))
         {
             chouca();
+            
         }
         transform.localPosition = Vector3.Lerp(transform.localPosition, targetPos, Time.deltaTime * speed);
         transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * speed);
-
+        
         float currentZ = transform.localEulerAngles.z;
         float newZ = Mathf.LerpAngle(currentZ, targetAngle, Time.deltaTime * speed);
         transform.localEulerAngles = new Vector3(0, 0, newZ);
-
     }
 
     public void chouca()
@@ -54,6 +57,9 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         rawImages = rawImages.GetComponent<RawImage>();
         int result = Random.Range(0, 11);
         rawImages.texture = cards[result];
+        IsRec = false;
+        yellowrec(IsRec: IsRec);
+
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -62,6 +68,8 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         targetScale = originalScale * scaleUp;
         targetAngle = 0f;
         IsLarged = true;
+        IsRec = true;
+        yellowrec(IsRec: IsRec);
 
         // 提升層級 → 避免被其他卡片擋住
         transform.SetAsLastSibling();
@@ -74,9 +82,14 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         targetScale = originalScale;
         targetAngle = originalAngle;
         IsLarged = false;
+        IsRec = false;
+        yellowrec(IsRec: IsRec);
     }
    
-    
+    public void yellowrec(bool IsRec)
+    {
+        yellow_retangular.gameObject.SetActive(IsRec);
+    }    
     /*public void big()
     {
         if(isEnlarged == false)

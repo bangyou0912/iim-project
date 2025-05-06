@@ -9,7 +9,7 @@ public class  publicCardGenerate : MonoBehaviour
     public GameObject publicCardPrefab;          // 卡牌 prefab
     public RectTransform cardContainer;        // 卡牌容器
     public Texture2D[] cards;
-
+    public Image yellow_retangular;
     void Start()
     {
         StartCoroutine(GenerateCardsWithDelay(1f));

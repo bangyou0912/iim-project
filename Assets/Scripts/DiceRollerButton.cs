@@ -93,7 +93,7 @@ public class DiceRoller : MonoBehaviour
 
     public Vector2 centerPosition = Vector2.zero;
     public Vector2 enlargedSize = new Vector2(500, 500);
-    public float moveTime = 0.2f;
+    public float moveTime = 0.1f;
     public float rollDuration = 2f;
 
     public float initialRollSpeed = 0.05f; // 一開始超快
@@ -150,9 +150,11 @@ public class DiceRoller : MonoBehaviour
         float timer = 0f;
         while (timer < rollDuration)
         {
-            audioSource.PlayOneShot(rollSound);
+            // 旋轉骰子
             int rand = Random.Range(0, sprites.Length);
-            diceImage.sprite = sprites[rand];
+            diceImage.sprite = sprites[rand];            
+            diceImage.transform.Rotate(new Vector3(0, 0, 30)); // 每次轉30度
+            audioSource.PlayOneShot(rollSound);
 
             timer += currentSpeed;
 
@@ -161,7 +163,7 @@ public class DiceRoller : MonoBehaviour
         }
 
         // 定格結果
-
+        diceImage.transform.rotation = Quaternion.identity;
         int result = Random.Range(0, sprites.Length);
         diceImage.sprite = sprites[result];
         Debug.Log("骰子結果: " + (result + 1));
