@@ -24,7 +24,6 @@ public class  publicCardGenerate : MonoBehaviour
     IEnumerator ck()
     {
 
-
         for (int i = 0; i < 4; i++)
         {
 

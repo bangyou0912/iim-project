@@ -86,16 +86,21 @@ public class DiceRoller : MonoBehaviour
     public Sprite[] primaryDiceSprites;     // 三原色骰圖
     public Sprite[] secondaryDiceSprites;   // 二次色骰圖
 
-    public Image diceImage;                 // 顯示動畫的 Image（DiceAnimationImage）
+    private Sprite[] _currentSprites; // 記住這次是哪組骰子
+    public Sprite[] currentSprites => _currentSprites;
+    public int resultIndex;          // 外部也能存取結果
+    public bool isPrimary { get; private set; } //確認骰的是三原色還是二次色
+
+    public Image diceImage;       // 顯示動畫的 Image（DiceAnimationImage）
     public RectTransform diceRect;
     public GameObject darkBackground;
+
     public System.Action onRollComplete;
 
     public Vector2 centerPosition = Vector2.zero;
     public Vector2 enlargedSize = new Vector2(500, 500);
     public float moveTime = 0.1f;
     public float rollDuration = 2f;
-
     public float initialRollSpeed = 0.05f; // 一開始超快
     public float finalRollSpeed = 0.09f;    // 最後變慢
 
@@ -105,31 +110,27 @@ public class DiceRoller : MonoBehaviour
 
     private Vector2 originalPosition;
     private Vector2 originalSize;
-
     private void Start()
     {
         audioSource = gameObject.AddComponent<AudioSource>();
     }
     public void RollDice(bool isPrimary)
     {
-
-        // 根據選擇 選擇骰子圖案
-        Sprite[] selectedSprites = isPrimary ? primaryDiceSprites : secondaryDiceSprites;
-
-        // 開始播放動畫
-        StartCoroutine(PlayDiceAnimation(selectedSprites));
-        // 顯示骰子圖像
-        diceImage.gameObject.SetActive(true);
-        
+        // 根據選擇 選擇骰子圖案   
+        this.isPrimary = isPrimary;//讓 DiceManager 知道現在是三原色or二次色骰子  
+        _currentSprites = isPrimary ? primaryDiceSprites : secondaryDiceSprites;
+        StartCoroutine(PlayDiceAnimation(currentSprites));
+        diceImage.gameObject.SetActive(true); // 顯示骰子圖像  
     }
 
-    IEnumerator PlayDiceAnimation(Sprite[] sprites)
+    
+    public IEnumerator PlayDiceAnimation(Sprite[] sprites)
     {
+
         // 將動畫拉到最上層
         diceImage.transform.SetAsLastSibling();
         darkBackground.SetActive(true);
-        diceImage.gameObject.SetActive(true);
-
+        
         // 儲存原位置
         originalPosition = diceRect.anchoredPosition;
         originalSize = diceRect.sizeDelta;
@@ -164,14 +165,13 @@ public class DiceRoller : MonoBehaviour
 
         // 定格結果
         diceImage.transform.rotation = Quaternion.identity;
-        int result = Random.Range(0, sprites.Length);
-        diceImage.sprite = sprites[result];
-        Debug.Log("骰子結果: " + (result + 1));
+        resultIndex = Random.Range(0, sprites.Length);
+        diceImage.sprite = sprites[resultIndex];
+        Debug.Log("骰子結果: " + (resultIndex + 1));
 
         audioSource.PlayOneShot(landSound);
-
+        diceImage.transform.SetAsLastSibling();
         yield return new WaitForSeconds(2f);
-
 
         // 關閉黑色背景
         darkBackground.SetActive(false);

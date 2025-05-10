@@ -23,7 +23,8 @@ public class ShowOrHideImageOnClick : MonoBehaviour
     {
         if (imageObj != null)
         {
-            imageObj.SetActive(!imageObj.activeSelf); // ¤Á´«¥Ø«eª¬ºA
+            imageObj.SetActive(!imageObj.activeSelf);
+            imageObj.transform.SetAsLastSibling();// ¤Á´«¥Ø«eª¬ºA
         }
     }
 }
