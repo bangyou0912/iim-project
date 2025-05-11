@@ -129,6 +129,19 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -352,7 +365,16 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _0": -8988664626997163831
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _1": -5986762455748748157
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _2": 4965519931785074686
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _3": 5902005258345441627
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _4": -2561000032784409819
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _5": 5273410508525795844
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _6": 1571530798417037708
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _7": 1090485936002253903
+      "\u6309\u9215_\u62C6\u89E3\u7248\u4E09\u6B21\u8272\uFF08\u96E3\u5EA63\uFF09 _8": 2469728647397417325
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
