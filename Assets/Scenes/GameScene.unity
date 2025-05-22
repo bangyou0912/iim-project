@@ -150,6 +150,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b458f43e8af51144eb4f513382b5da95, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  primaryDiceSprites:
+  - {fileID: -1524397360211684229, guid: 24cc3347374af36499422c989585af3b, type: 3}
+  - {fileID: -1524397360211684229, guid: 24cc3347374af36499422c989585af3b, type: 3}
+  - {fileID: 4866609017168896229, guid: 0c9e4a6c08f4383489db649c9f3d4094, type: 3}
+  - {fileID: 9083422917347122340, guid: 71f93b1ceacdea94eb6020c9a69eb26b, type: 3}
+  - {fileID: -3740706926532943017, guid: d9cf58cb20d51e64cad3b2d388cdf304, type: 3}
+  - {fileID: -6187037286508463275, guid: 5632f67e807dbc94883aee421abb90e6, type: 3}
+  secondaryDiceSprites:
+  - {fileID: 1804064790815991713, guid: 11611db73696db442a69ec98723ea584, type: 3}
+  - {fileID: 2090082454602116431, guid: 807ff4345332ac746b2090ef4af6ba99, type: 3}
+  - {fileID: 757649457450457107, guid: 884eea2fe52a64b44942316f4485206a, type: 3}
+  - {fileID: -1406968663340182536, guid: b5dadb7cbc3e12f44bb8a801de84440a, type: 3}
+  - {fileID: -2861207482713130266, guid: bfa22f96270af3341b09eb6490659ae5, type: 3}
+  - {fileID: 3953539787004737337, guid: cc54f383e6c5d5340b4e6daeefda15f4, type: 3}
+  resultIndex: 0
+  diceImage: {fileID: 58935116}
+  diceRect: {fileID: 58935117}
+  darkBackground: {fileID: 1243289563}
+  centerPosition: {x: 0, y: 0}
+  enlargedSize: {x: 500, y: 500}
+  moveTime: 0.1
+  rollDuration: 2
+  initialRollSpeed: 0.05
+  finalRollSpeed: 0.09
+  rollSound: {fileID: 8300000, guid: 35a7e86a2497c9d41ba4290d9d1fd3c2, type: 3}
+  landSound: {fileID: 8300000, guid: 17c392e1a2d71cb4ba411ce1220c1a9c, type: 3}
 --- !u!222 &58935115
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1206,6 +1232,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b458f43e8af51144eb4f513382b5da95, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  primaryDiceSprites: []
+  secondaryDiceSprites: []
+  resultIndex: 0
+  diceImage: {fileID: 0}
+  diceRect: {fileID: 0}
+  darkBackground: {fileID: 0}
+  centerPosition: {x: 0, y: 0}
+  enlargedSize: {x: 500, y: 500}
+  moveTime: 0.1
+  rollDuration: 2
+  initialRollSpeed: 0.05
+  finalRollSpeed: 0.09
+  rollSound: {fileID: 0}
+  landSound: {fileID: 0}
 --- !u!4 &506182131
 Transform:
   m_ObjectHideFlags: 0
@@ -3061,6 +3101,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1582209237}
   - component: {fileID: 1582209236}
+  - component: {fileID: 1582209238}
   m_Layer: 0
   m_Name: "\u8ABF\u8272\u539F\u5247_\u55AE\u5716\u7247"
   m_TagString: Untagged
@@ -3091,7 +3132,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -3112,32 +3153,44 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: b09c60704fd414d46a3596a20a875ac3, type: 3}
+  m_Sprite: {fileID: -5727701949774226191, guid: c0dbc0c327e4609479b3b51a9f51ecbc, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 28.07, y: 14.542124}
+  m_Size: {x: 10, y: 5.71}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!4 &1582209237
-Transform:
+--- !u!224 &1582209237
+RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1582209235}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.5646432, y: 0.57315, z: 1}
+  m_LocalScale: {x: 1.7824093, y: 1.8092625, z: 3.1567}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 26.91, y: 13.381953}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!222 &1582209238
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1582209235}
+  m_CullTransparentMesh: 1
 --- !u!1 &1613624942
 GameObject:
   m_ObjectHideFlags: 0
@@ -3768,14 +3821,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.5294118}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 0
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -7408564148381250885, guid: a2619bd03106f844f97cf3e150fb0f7d, type: 3}
+  m_Sprite: {fileID: 652766450717347187, guid: 7569e504b71576e42a02e946631f41fc, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
