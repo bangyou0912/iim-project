@@ -7,8 +7,18 @@ public class StartSceneManager : MonoBehaviourPunCallbacks
     public void OnClickStart()
     {
         PhotonNetwork.AutomaticallySyncScene = true;
-        PhotonNetwork.ConnectUsingSettings();
-        print("ClickStart!");
+
+        if (!PhotonNetwork.IsConnected)
+        {
+            PhotonNetwork.ConnectUsingSettings();
+            print("ClickStart! Connecting to Photon...");
+            SceneManager.LoadScene("LobbyScene");
+        }
+        else
+        {
+            print("Already connected to Photon.");
+            SceneManager.LoadScene("LobbyScene");
+        }
     }
     public override void OnConnectedToMaster()
     {

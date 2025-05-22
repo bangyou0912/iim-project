@@ -53,6 +53,12 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
         return playerName.Trim();
     }
 
+    public void OnClickBackToHomepage()
+    {
+        print("Back to Home Page!");
+        SceneManager.LoadScene("StartScene");
+    }
+
     public void OnClickCreateRoom()
     {
         string roomName = GetRoomName();

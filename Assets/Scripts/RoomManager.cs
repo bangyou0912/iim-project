@@ -37,7 +37,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
         StringBuilder sb = new StringBuilder();
         foreach (var kvp in PhotonNetwork.CurrentRoom.Players)
         {
-            sb.AppendLine("¡÷ " + kvp.Value.NickName);
+            sb.AppendLine(kvp.Value.NickName);
         }
         textPlayerList.text = sb.ToString();
     }
@@ -55,6 +55,10 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public void OnClickStartGame()
     {
         SceneManager.LoadScene("RulePage1");
+    }
+    public void OnClickBackToHomePage()
+    {
+        SceneManager.LoadScene("StartScene");
     }
 
     public void OnClickLeaveGame()
