@@ -1,6 +1,8 @@
+using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class HandCardGenerator : MonoBehaviour
@@ -12,10 +14,13 @@ public class HandCardGenerator : MonoBehaviour
 
     void Start()
     {
-        if (PlayerPrefs.GetInt("ShouldGenerateCards", 0) == 1)
+        if (PhotonNetwork.IsConnected == false)
         {
-            PlayerPrefs.SetInt("ShouldGenerateCards", 0); // ­«³]
-            StartCoroutine(GenerateCardsWithDelay(1f));
+            SceneManager.LoadScene("StartScene");
+        }
+        else
+        {
+            StartCoroutine(GenerateCardsWithDelay(2f));
         }
     }
 

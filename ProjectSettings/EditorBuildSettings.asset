@@ -16,13 +16,16 @@ EditorBuildSettings:
     guid: 1393ce8a28caf2243b709684bf0ace46
   - enabled: 1
     path: Assets/Scenes/RulePage1.unity
-    guid: 72974ff1410a39f43ba84048bc3e4167
+    guid: ebc5762fc1274034abcb450eb5233b1a
   - enabled: 1
     path: Assets/Scenes/RulePage2.unity
-    guid: a3effd1efe837fb4aa1151f201c42d74
+    guid: c8159978c1687d640a36a2a71804a157
   - enabled: 1
     path: Assets/Scenes/RulePage3.unity
-    guid: 80b405cf6799db444a80e89ad560723b
+    guid: bb1b793b4dc085d479826f3a27850168
+  - enabled: 1
+    path: Assets/Scenes/BeforeGameScene.unity
+    guid: 083c05de5fd2b4742b285ff2dc89f38e
   - enabled: 1
     path: Assets/Scenes/GameScene.unity
     guid: bd99fcd4375e1004584f49859edcd966
