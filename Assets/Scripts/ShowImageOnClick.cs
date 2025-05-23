@@ -5,7 +5,8 @@ public class ShowOrHideImageOnClick : MonoBehaviour
 {
     public Button toggleButton;   // 拖曳按鈕進來
     public GameObject imageObj;   // 拖曳要切換的Image進來
-    //public SpriteRenderer spriteObj;    // SpriteRenderer（非 UI Image）
+    public GameObject darkBackground;//黑色背景
+
     void Start()
      {
          if (toggleButton != null)
@@ -23,32 +24,10 @@ public class ShowOrHideImageOnClick : MonoBehaviour
          if (imageObj != null)
          {
 
-             imageObj.SetActive(!imageObj.activeSelf);// 切換目前狀態
-             imageObj.transform.SetAsLastSibling();
+            imageObj.SetActive(!imageObj.activeSelf);// 切換目前狀態
+            darkBackground.SetActive(imageObj.activeSelf);
+            imageObj.transform.SetAsLastSibling();
+            toggleButton.transform.SetAsLastSibling();
          }
      }
-    
-    /*void Start()
-    {
-        if (toggleButton != null)
-        {
-            toggleButton.onClick.AddListener(ToggleImage);
-        }
-
-        if (spriteObj != null)
-        {
-            spriteObj.enabled = false; // 一開始圖片隱藏
-        }
-
-
-    }
-    void ToggleImage()
-    {
-        if (spriteObj != null)
-        {
-
-            spriteObj.enabled = !spriteObj.enabled; // 切換目前狀態
-            spriteObj.transform.SetAsLastSibling();
-        }
-    }*/
 }
