@@ -14,6 +14,6 @@ public class BeforeGameSceneManager : MonoBehaviourPunCallbacks
     public void OnClickStart()
     {
 
-            SceneManager.LoadScene("GameScene");
+            SceneManager.LoadScene("GameScene1");
     }
 }
