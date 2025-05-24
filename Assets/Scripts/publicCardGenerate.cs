@@ -12,7 +12,7 @@ public class  publicCardGenerate : MonoBehaviour
     public Image yellow_retangular;
     void Start()
     {
-        StartCoroutine(GenerateCardsWithDelay(2f));
+        StartCoroutine(GenerateCardsWithDelay(1f));
     }
 
     IEnumerator GenerateCardsWithDelay(float delay)

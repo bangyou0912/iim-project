@@ -11,7 +11,8 @@ public class HandCardGenerator : MonoBehaviour
     public RectTransform cardContainer;        // 卡牌容器
     public Texture2D[] primaryColors;          // 三原色圖
     public Texture2D[] secondaryColors;        // 二次色圖
-void Start()
+
+    void Start()
     {
         if (PhotonNetwork.IsConnected == false)
         {
@@ -60,13 +61,6 @@ void Start()
             GameObject card = Instantiate(handCardPrefab, cardContainer);
             RawImage raw = card.GetComponent<RawImage>();
             raw.texture = selectedTextures[i];
-
-            // 傳圖進 HandCard 腳本
-            HandCard hand = card.GetComponent<HandCard>();
-            if (hand != null)
-            {
-                hand.cardTexture = selectedTextures[i];
-            }
 
             // 扇形角度與位置
             float angle = Mathf.Lerp(-angleRange, angleRange, i / (cardCount - 1f));

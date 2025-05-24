@@ -27,16 +27,8 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
             if(PhotonNetwork.CurrentLobby == null)
             {
                 PhotonNetwork.JoinLobby();
-                if (PhotonNetwork.InRoom)
-                {
-                    SpawnPlayer();
-                }
             }
         }
-    }
-    void SpawnPlayer()
-    {
-        PhotonNetwork.Instantiate("Player", Vector3.zero, Quaternion.identity);
     }
 
     public override void OnConnectedToMaster()
