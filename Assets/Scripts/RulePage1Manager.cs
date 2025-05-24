@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class RulePage1Manager : MonoBehaviour
+public class RulePage1Manager: MonoBehaviour
 {
     public void OnClickGoToFrontPage()
     {
@@ -12,6 +12,7 @@ public class RulePage1Manager : MonoBehaviour
     {
         SceneManager.LoadScene("RulePage2");
     }
+
     public void OnClickStartGame()
     {
         SceneManager.LoadScene("BeforeGameScene");
