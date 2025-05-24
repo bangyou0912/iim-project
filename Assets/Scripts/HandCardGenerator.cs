@@ -5,8 +5,13 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class GameScneManager: MonoBehaviour
+public class HandCardGenerator : MonoBehaviour
 {
+    public GameObject handCardPrefab;          // 卡牌 prefab
+    public RectTransform cardContainer;        // 卡牌容器
+    public Texture2D[] primaryColors;          // 三原色圖
+    public Texture2D[] secondaryColors;        // 二次色圖
+
     void Start()
     {
         if (PhotonNetwork.IsConnected == false)
@@ -16,24 +21,15 @@ public class GameScneManager: MonoBehaviour
         else
         {
             StartCoroutine(GenerateCardsWithDelay(2f));
-            InitGame();
         }
     }
-
-    public void InitGame()
-    {
-        PhotonNetwork.Instantiate("Player", new Vector3(0, -3, 0), Quaternion.identity);
-    }
-    public GameObject handCardPrefab;          // 卡牌 prefab
-    public RectTransform cardContainer;        // 卡牌容器
-    public Texture2D[] primaryColors;          // 三原色圖
-    public Texture2D[] secondaryColors;        // 二次色圖
 
     IEnumerator GenerateCardsWithDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
         StartCoroutine(GenerateCards());
     }
+
     IEnumerator GenerateCards()
     {
         List<Texture2D> selectedTextures = new List<Texture2D>();
@@ -91,32 +87,32 @@ public class GameScneManager: MonoBehaviour
                 hover.originalRotationZ = angle;
             }
         }
+    }
 
-        IEnumerator FadeInCard(CanvasGroup cg)
+    IEnumerator FadeInCard(CanvasGroup cg)
+    {
+        float duration = 0.3f;
+        float t = 0f;
+
+        while (t < duration)
         {
-            float duration = 0.3f;
-            float t = 0f;
-
-            while (t < duration)
-            {
-                cg.alpha = Mathf.Lerp(0, 1, t / duration);
-                t += Time.deltaTime;
-                yield return null;
-            }
-
-            cg.alpha = 1;
+            cg.alpha = Mathf.Lerp(0, 1, t / duration);
+            t += Time.deltaTime;
+            yield return null;
         }
 
-        void Shuffle<T>(List<T> list)
+        cg.alpha = 1;
+    }
+
+
+    void Shuffle<T>(List<T> list)
+    {
+        for (int i = 0; i < list.Count; i++)
         {
-            for (int i = 0; i < list.Count; i++)
-            {
-                int rand = Random.Range(i, list.Count);
-                T temp = list[i];
-                list[i] = list[rand];
-                list[rand] = temp;
-            }
+            int rand = Random.Range(i, list.Count);
+            T temp = list[i];
+            list[i] = list[rand];
+            list[rand] = temp;
         }
     }
 }
-

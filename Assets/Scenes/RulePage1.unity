@@ -356,9 +356,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1934841754}
-        m_TargetAssemblyTypeName: RulePage1Manager, Assembly-CSharp
-        m_MethodName: OnClickGoToFrontPage
+      - m_Target: {fileID: 1934841751}
+        m_TargetAssemblyTypeName: RuleDescripton, Assembly-CSharp
+        m_MethodName: 
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1195,8 +1195,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1934841754}
-        m_TargetAssemblyTypeName: RulePage1Manager, Assembly-CSharp
+      - m_Target: {fileID: 1934841752}
+        m_TargetAssemblyTypeName: RulePage1Manager1_New, Assembly-CSharp
         m_MethodName: OnClickStartGame
         m_Mode: 1
         m_Arguments:
@@ -1443,7 +1443,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1934841753}
-  - component: {fileID: 1934841754}
+  - component: {fileID: 1934841752}
   m_Layer: 0
   m_Name: RulePage1Manager
   m_TagString: Untagged
@@ -1451,6 +1451,18 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &1934841752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1934841751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b9ce7f807b55a44c92d3f882f420e21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &1934841753
 Transform:
   m_ObjectHideFlags: 0
@@ -1466,18 +1478,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1934841754
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1934841751}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5325f11fd3baec8499d8b320e57e11a4, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &2036595285
 GameObject:
   m_ObjectHideFlags: 0
@@ -1560,8 +1560,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1934841754}
-        m_TargetAssemblyTypeName: RulePage1Manager, Assembly-CSharp
+      - m_Target: {fileID: 1934841752}
+        m_TargetAssemblyTypeName: RuleDescripton, Assembly-CSharp
         m_MethodName: OnClickGoToNextPage
         m_Mode: 1
         m_Arguments:
