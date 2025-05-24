@@ -356,9 +356,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1934841752}
+      - m_Target: {fileID: 1934841751}
         m_TargetAssemblyTypeName: RuleDescripton, Assembly-CSharp
-        m_MethodName: OnClickGoToFrontPage
+        m_MethodName: 
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1196,7 +1196,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1934841752}
-        m_TargetAssemblyTypeName: RuleDescripton, Assembly-CSharp
+        m_TargetAssemblyTypeName: RulePage1Manager1_New, Assembly-CSharp
         m_MethodName: OnClickStartGame
         m_Mode: 1
         m_Arguments:
@@ -1460,7 +1460,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1934841751}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a60d951c2abf4674d87b38a321810f66, type: 3}
+  m_Script: {fileID: 11500000, guid: 2b9ce7f807b55a44c92d3f882f420e21, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!4 &1934841753

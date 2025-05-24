@@ -102,11 +102,12 @@ public class DiceRoller : MonoBehaviour
     public float moveTime = 0.1f;
     public float rollDuration = 2f;
     public float initialRollSpeed = 0.05f; // 一開始超快
-    public float finalRollSpeed = 0.09f;    // 最後變慢
+    public float finalRollSpeed = 0.09f; // 最後變慢
+    private bool isRolling = false; 
 
     public AudioClip rollSound;       // 骰子滾動音效
-    public AudioClip landSound;
-    private AudioSource audioSource;// 骰子落地音效
+    public AudioClip landSound;       // 骰子落地音效
+    private AudioSource audioSource;
 
     private Vector2 originalPosition;
     private Vector2 originalSize;
@@ -149,30 +150,39 @@ public class DiceRoller : MonoBehaviour
         // 滾動動畫
         float currentSpeed = initialRollSpeed;
         float timer = 0f;
+        
         while (timer < rollDuration)
         {
             // 旋轉骰子
+            
             int rand = Random.Range(0, sprites.Length);
             diceImage.sprite = sprites[rand];            
             diceImage.transform.Rotate(new Vector3(0, 0, 30)); // 每次轉30度
-            audioSource.PlayOneShot(rollSound);
+
+            // 播滾動聲
+            if (!audioSource.isPlaying)
+            {
+                audioSource.PlayOneShot(rollSound);
+            }
 
             timer += currentSpeed;
 
             currentSpeed = Mathf.Lerp(initialRollSpeed, finalRollSpeed, timer / rollDuration);
             yield return new WaitForSeconds(currentSpeed);
+            
         }
 
         // 定格結果
+               
         diceImage.transform.rotation = Quaternion.identity;
         resultIndex = Random.Range(0, sprites.Length);
         diceImage.sprite = sprites[resultIndex];
         Debug.Log("骰子結果: " + (resultIndex + 1));
+        audioSource.PlayOneShot(landSound); 
 
-        audioSource.PlayOneShot(landSound);
         diceImage.transform.SetAsLastSibling();
         yield return new WaitForSeconds(2f);
-
+        isRolling = false;
         // 關閉黑色背景
         darkBackground.SetActive(false);
 
