@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class ShowOrHideImageOnClick : MonoBehaviour
@@ -8,18 +9,20 @@ public class ShowOrHideImageOnClick : MonoBehaviour
     public GameObject darkBackground;//黑色背景
 
     void Start()
-     {
-         if (toggleButton != null)
-         {
-             toggleButton.onClick.AddListener(ToggleImage);
-         }
+    {
+        if (toggleButton != null)
+        {
+            toggleButton.onClick.AddListener(ToggleImage);
+        }
 
-         if (imageObj != null)
-         {
-             imageObj.SetActive(false); // 一開始圖片隱藏
-         }
-     }   
-    void ToggleImage()
+        if (imageObj != null)
+        {
+            imageObj.SetActive(false); // 一開始圖片隱藏
+        }
+        //取消按鈕的選取狀態，避免Enter觸發
+        EventSystem.current.SetSelectedGameObject(null);
+    }
+        void ToggleImage()
      {
          if (imageObj != null)
          {
