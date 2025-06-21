@@ -11,8 +11,7 @@ GameObject:
   - component: {fileID: 3643253248826008833}
   - component: {fileID: 3330551619219675080}
   - component: {fileID: 8109430587661068506}
-  - component: {fileID: 9164679565370290624}
-  - component: {fileID: 2582969482129011218}
+  - component: {fileID: 480855194219968602}
   m_Layer: 5
   m_Name: HandCard
   m_TagString: Untagged
@@ -74,7 +73,7 @@ MonoBehaviour:
     y: 0
     width: 1
     height: 1
---- !u!114 &9164679565370290624
+--- !u!114 &480855194219968602
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -89,20 +88,3 @@ MonoBehaviour:
   floatY: 30
   scaleUp: 1.2
   speed: 10
-  originalRotationZ: 0
---- !u!114 &2582969482129011218
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1178453368839778864}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8606d6aa9c8b1447910014fc2c79409, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cardColorName: 
-  cardtype: 0
-  highlighted: {fileID: 8025813151523322269, guid: def22f4a4a8775f49bcb8378beb34a53, type: 3}
-  isCardSelected: 0

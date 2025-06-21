@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 2935784088267778821}
   - component: {fileID: 3601871380845614312}
   - component: {fileID: 3066387480253841904}
-  - component: {fileID: 8412657481238810612}
   m_Layer: 5
   m_Name: resultDice
   m_TagString: Untagged
@@ -91,19 +90,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverScale: {x: 1.2, y: 1.2, z: 1.2}
   scaleSpeed: 10
---- !u!114 &8412657481238810612
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8938330993779585691}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8606d6aa9c8b1447910014fc2c79409, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cardColorName: 
-  cardtype: 1
-  highlighted: {fileID: 8025813151523322269, guid: def22f4a4a8775f49bcb8378beb34a53, type: 3}
-  isCardSelected: 0

@@ -26,7 +26,6 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     void Start()
     {
-        yellow_retangular.gameObject.SetActive(false);
         originalPos = transform.localPosition;
         targetPos = originalPos;
 
@@ -70,11 +69,11 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         targetAngle = 0f;
         IsLarged = true;
         IsRec = true;
+        yellowrec(IsRec: IsRec);
 
-        // 將黃框移動到這張卡牌下
-        yellow_retangular.gameObject.SetActive(true);
-        yellow_retangular.transform.SetParent(transform, false); // false = 保留 local transform
-        yellow_retangular.transform.localPosition = Vector3.zero; // 放在卡牌正中央
+        // 提升層級 → 避免被其他卡片擋住
+        transform.SetAsLastSibling();
+        
     }
 
     public void OnPointerExit(PointerEventData eventData)
@@ -84,9 +83,9 @@ public class change_card : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         targetAngle = originalAngle;
         IsLarged = false;
         IsRec = false;
-        yellow_retangular.gameObject.SetActive(false);
+        yellowrec(IsRec: IsRec);
     }
-
+   
     public void yellowrec(bool IsRec)
     {
         yellow_retangular.gameObject.SetActive(IsRec);
