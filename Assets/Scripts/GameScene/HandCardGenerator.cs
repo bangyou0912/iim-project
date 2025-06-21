@@ -11,17 +11,17 @@ public class HandCardGenerator : MonoBehaviour
     public RectTransform cardContainer;        // 卡牌容器
     public Texture2D[] primaryColors;          // 三原色圖
     public Texture2D[] secondaryColors;        // 二次色圖
-
-    void Start()
+    public void StartGeneratingCards()
     {
+        /*
         if (PhotonNetwork.IsConnected == false)
         {
             SceneManager.LoadScene("StartScene");
         }
         else
-        {
+        {*/
             StartCoroutine(GenerateCardsWithDelay(2f));
-        }
+        //}
     }
 
     IEnumerator GenerateCardsWithDelay(float delay)
@@ -62,12 +62,29 @@ public class HandCardGenerator : MonoBehaviour
             RawImage raw = card.GetComponent<RawImage>();
             raw.texture = selectedTextures[i];
 
-            // 扇形角度與位置
+            // 自動設定卡片選取資料
+            CardSelectable sel = card.GetComponent<CardSelectable>();
+            if (sel != null)
+            {
+                sel.cardtype = CardSelectable.CardType.Hand;
+
+                // 取得貼圖名稱（如 "青", "洋紅", 等）
+                sel.cardColorName = raw.texture.name;
+
+                // 自動綁定高亮 Image（假設是子物件）
+                if (sel.highlighted == null)
+                {
+                    Image highlight = card.GetComponentInChildren<Image>(true); // true=包含未啟用
+                    sel.highlighted = highlight;
+                }
+            }
+
+            // 扇形座標設定
             float angle = Mathf.Lerp(-angleRange, angleRange, i / (cardCount - 1f));
             float radians = angle * Mathf.Deg2Rad;
 
             float x = Mathf.Sin(radians) * radius;
-            float y = Mathf.Cos(radians) * radius - radius;  // 中間高，兩側低
+            float y = Mathf.Cos(radians) * radius - radius;
 
             RectTransform rt = card.GetComponent<RectTransform>();
             rt.anchoredPosition = new Vector2(x, y);
@@ -75,12 +92,11 @@ public class HandCardGenerator : MonoBehaviour
 
             CanvasGroup cg = card.AddComponent<CanvasGroup>();
             cg.alpha = 0;
+            StartCoroutine(FadeInCard(cg));
 
-            StartCoroutine(FadeInCard(cg));  // 淡入動畫
+            yield return new WaitForSeconds(0.15f);
 
-            yield return new WaitForSeconds(0.15f);  // 每張間隔 0.15 秒（可自行調整）
-
-            // 將原始角度儲存給 Hover 用
+            // 給 hover 動畫記得角度
             CardHoverEffect hover = card.GetComponent<CardHoverEffect>();
             if (hover != null)
             {
@@ -88,6 +104,7 @@ public class HandCardGenerator : MonoBehaviour
             }
         }
     }
+
 
     IEnumerator FadeInCard(CanvasGroup cg)
     {

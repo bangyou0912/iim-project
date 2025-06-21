@@ -11,7 +11,8 @@ GameObject:
   - component: {fileID: 7397567847937224005}
   - component: {fileID: 2935784088267778821}
   - component: {fileID: 6575123909690759418}
-  - component: {fileID: 8304816034770578234}
+  - component: {fileID: 3954791584798495398}
+  - component: {fileID: 3115698638032258229}
   m_Layer: 5
   m_Name: publicCard
   m_TagString: Untagged
@@ -74,7 +75,7 @@ MonoBehaviour:
     y: 0
     width: 1
     height: 1
---- !u!114 &8304816034770578234
+--- !u!114 &3954791584798495398
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -83,29 +84,34 @@ MonoBehaviour:
   m_GameObject: {fileID: 8938330993779585691}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bef95d667fde6b4e9dd2e41cd9f0784, type: 3}
+  m_Script: {fileID: 11500000, guid: f2cc0da713f586e4494ecd92dd092a25, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cards:
-  - {fileID: 2800000, guid: 3803e9a50fd175d42ab6b4d208fea1c0, type: 3}
-  - {fileID: 2800000, guid: 12a6776ac1a404147827881ee33f1b00, type: 3}
-  - {fileID: 2800000, guid: 4b5a026fef3ec3a4f9af723bce481fd3, type: 3}
-  - {fileID: 2800000, guid: a58fd1d902e70f74aa52c4b095633882, type: 3}
-  - {fileID: 2800000, guid: 81ee125794f633342a90a1cea3a47dc4, type: 3}
-  - {fileID: 2800000, guid: 9a3115c3395b0f746ba31a09b07c60b7, type: 3}
-  - {fileID: 2800000, guid: a945ae1180b79944d8ea55d49b05625b, type: 3}
-  - {fileID: 2800000, guid: 35ab4a38fe3877842b012daeb01458d0, type: 3}
-  - {fileID: 2800000, guid: aecadc8dff58f0a43b65892b6108763f, type: 3}
-  - {fileID: 2800000, guid: bfa0763dcbec1d54aaf78b0b2d609dd7, type: 3}
-  - {fileID: 2800000, guid: 46b35d52031439b40bbe6a4355e15db7, type: 3}
-  rawImages: {fileID: 6575123909690759418}
-  yellow_retangular: {fileID: 8857341206145721741}
+  cards: []
+  rawImages: {fileID: 0}
+  yellow_retangular: {fileID: 0}
   floatY: 0
   scaleUp: 1.2
   speed: 10
   IsLarged: 0
   IsRec: 0
   originalRotationZ: 0
+--- !u!114 &3115698638032258229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8938330993779585691}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8606d6aa9c8b1447910014fc2c79409, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  cardColorName: 
+  cardtype: 2
+  highlighted: {fileID: 8025813151523322269, guid: def22f4a4a8775f49bcb8378beb34a53, type: 3}
+  isCardSelected: 0
 --- !u!1 &9108248495030733415
 GameObject:
   m_ObjectHideFlags: 0

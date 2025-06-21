@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &8938330993779585691
+--- !u!1 &1316342295381387399
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,25 +8,23 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 7397567847937224005}
-  - component: {fileID: 2935784088267778821}
-  - component: {fileID: 3601871380845614312}
-  - component: {fileID: 3066387480253841904}
-  - component: {fileID: 8412657481238810612}
+  - component: {fileID: 6771407235544493670}
+  - component: {fileID: 3378672908384248784}
+  - component: {fileID: 8025813151523322269}
   m_Layer: 5
-  m_Name: resultDice
+  m_Name: Yellow_rectangle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!224 &7397567847937224005
+--- !u!224 &6771407235544493670
 RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8938330993779585691}
+  m_GameObject: {fileID: 1316342295381387399}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -37,23 +35,23 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 100, y: 100}
+  m_SizeDelta: {x: 240, y: 360}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!222 &2935784088267778821
+--- !u!222 &3378672908384248784
 CanvasRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8938330993779585691}
+  m_GameObject: {fileID: 1316342295381387399}
   m_CullTransparentMesh: 1
---- !u!114 &3601871380845614312
+--- !u!114 &8025813151523322269
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8938330993779585691}
+  m_GameObject: {fileID: 1316342295381387399}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
@@ -67,7 +65,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: caef389dae1026c438fa9f9ec7d7752a, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -77,33 +75,3 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &3066387480253841904
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8938330993779585691}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e0d1b30ebeba7264fa3fd9d518f7b668, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  hoverScale: {x: 1.2, y: 1.2, z: 1.2}
-  scaleSpeed: 10
---- !u!114 &8412657481238810612
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8938330993779585691}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c8606d6aa9c8b1447910014fc2c79409, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  cardColorName: 
-  cardtype: 1
-  highlighted: {fileID: 8025813151523322269, guid: def22f4a4a8775f49bcb8378beb34a53, type: 3}
-  isCardSelected: 0
