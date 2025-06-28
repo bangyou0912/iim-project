@@ -15,6 +15,10 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
     TMP_Text textRoomList;
     [SerializeField]
     TMP_InputField inputPlayerName;
+    [SerializeField]
+    GameObject existRoomPrefab;
+    [SerializeField]
+    RectTransform existRoomContainer;
 
     public void Start()
     {
@@ -88,8 +92,14 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
             print("Invalid Room Name or Player Name !");
         }
     }
+    public void OnClickExistRoom(GameObject existRoomPrefab)
+    {
+        inputRoomName.text = existRoomPrefab.transform.Find("RoomNameText").GetComponent<TMP_Text>().text;
+        print("已輸入房間名稱");
+    }
     public override void OnJoinedRoom()
     {
+
         print("Room Joined!");
         SceneManager.LoadScene("RoomScene");
     }
@@ -100,9 +110,15 @@ public class LobbySceneManager : MonoBehaviourPunCallbacks
         StringBuilder sb = new StringBuilder();
         foreach(RoomInfo roomInfo in roomList)
         {
-            if(roomInfo.PlayerCount > 0)
+            if(roomInfo.PlayerCount >= 0)
             {
-                sb.AppendLine("→ " + roomInfo.Name + "   人數:" + roomInfo.PlayerCount);
+                sb.AppendLine(" → " + roomInfo.Name + "   人數： " + roomInfo.PlayerCount);
+                GameObject room = Instantiate(existRoomPrefab, existRoomContainer);
+                TMP_Text roomText = room.transform.Find("RoomNameText").GetComponent<TMP_Text>();
+                roomText.text = roomInfo.Name;
+                Button button = room.GetComponent<Button>();
+                button.onClick.AddListener(() => OnClickExistRoom(room));
+               // Debug.Log("已綁定房間：" + roomText.text);
             }
         }
         textRoomList.text = sb.ToString();
