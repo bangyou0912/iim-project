@@ -1,23 +1,31 @@
+using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class GameSceneManager : MonoBehaviour
+public class GameSceneManager : MonoBehaviourPun
 {
     public static GameSceneManager Instance;
 
-    [Header("生成設定")]
+    [Header("公牌設定")]
     public GameObject publicCardPrefab;
-    public RectTransform cardContainer;
     public Texture2D[] cards;
-    public Image yellow_retangular;
+    [SerializeField]
+    RectTransform publiccardContainer;
+    [SerializeField]
+    Image yellow_retangular;
+
+    [Header("手牌設定")]
     public HandCardGenerator handCardGenerator;
 
-    [Header("UI 元素")]
-    public GameObject confirmPanel;
-    public Button confirmButton;
-    public Button cancelButton;
+    [Header("提示面板")]
+    [SerializeField]
+    GameObject confirmPanel;
+    [SerializeField]
+    Button confirmButton;
+    [SerializeField]
+    Button cancelButton;
 
     private List<string> selectedHandColors = new List<string>();
     private List<HandCardSelect> selectedHandCards = new List<HandCardSelect>();
@@ -37,9 +45,11 @@ public class GameSceneManager : MonoBehaviour
         confirmPanel.SetActive(false);
         confirmButton.onClick.AddListener(OnConfirmHarmonize);
         cancelButton.onClick.AddListener(CloseConfirmPanel);
-
-        StartCoroutine(GeneratePublicCards(1f));
         handCardGenerator.StartGeneratingCards();
+        if (PhotonNetwork.IsMasterClient)
+        {
+            StartCoroutine(GeneratePublicCards(1f));
+        }
     }
 
     public IEnumerator GeneratePublicCards(float delay)
@@ -47,6 +57,26 @@ public class GameSceneManager : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         int cardCount = 4;
+        int[] indices = new int[cardCount];
+
+        for (int i = 0; i < cardCount; i++)
+        {
+            indices[i] = Random.Range(0, cards.Length);
+        }
+
+        photonView.RPC("RPC_GeneratePublicCards", RpcTarget.All, indices);
+    }
+
+    [PunRPC]
+    public void RPC_GeneratePublicCards(int[] indices)
+    {
+        StartCoroutine(GeneratePublicCardsFromIndices(indices));
+    }
+    public IEnumerator GeneratePublicCardsFromIndices(int[] indices)
+    {
+        yield return new WaitForSeconds(0.1f); // 可加 buffer 等待場景或資料準備
+
+        int cardCount = indices.Length;
         float cardWidth = 240f;
         float spacing = 40f;
         float totalWidth = cardCount * cardWidth + (cardCount - 1) * spacing;
@@ -54,10 +84,10 @@ public class GameSceneManager : MonoBehaviour
 
         for (int i = 0; i < cardCount; i++)
         {
-            int result = Random.Range(0, cards.Length);
+            int result = indices[i];
             Texture2D tex = cards[result];
 
-            GameObject card = Instantiate(publicCardPrefab, cardContainer);
+            GameObject card = Instantiate(publicCardPrefab, publiccardContainer);
             RectTransform rt = card.GetComponent<RectTransform>();
             rt.sizeDelta = new Vector2(cardWidth, 360);
             rt.anchoredPosition = new Vector2(startX + i * (cardWidth + spacing), 0);
@@ -75,7 +105,6 @@ public class GameSceneManager : MonoBehaviour
             yield return new WaitForSeconds(0.15f);
         }
     }
-
     private IEnumerator FadeInCard(CanvasGroup cg)
     {
         float duration = 0.3f;

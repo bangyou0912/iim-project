@@ -1713,6 +1713,7 @@ GameObject:
   m_Component:
   - component: {fileID: 566195433}
   - component: {fileID: 566195434}
+  - component: {fileID: 566195435}
   m_Layer: 0
   m_Name: GameSceneManager
   m_TagString: Untagged
@@ -1748,7 +1749,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   publicCardPrefab: {fileID: 2435916338373172616, guid: 35347fc6bcf86f34d959bb66f6f924db, type: 3}
-  cardContainer: {fileID: 795364719}
   cards:
   - {fileID: 2800000, guid: 263e9ae145e22ec4290824855f5c5b17, type: 3}
   - {fileID: 2800000, guid: f17951968649aba4c91ec1b8bc1e70d1, type: 3}
@@ -1761,11 +1761,34 @@ MonoBehaviour:
   - {fileID: 2800000, guid: a54860a8b2309a14c8a3348437df01dc, type: 3}
   - {fileID: 2800000, guid: 6ef238f3b8a6f4049a624bae08d89565, type: 3}
   - {fileID: 2800000, guid: 05fe1a06940fb5146bba1c754a49971d, type: 3}
+  publiccardContainer: {fileID: 795364719}
   yellow_retangular: {fileID: 2141098774}
   handCardGenerator: {fileID: 881922826}
   confirmPanel: {fileID: 510901479}
   confirmButton: {fileID: 79381577}
   cancelButton: {fileID: 1000386994}
+--- !u!114 &566195435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 566195431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa584fbee541324448dd18d8409c7a41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ObservedComponentsFoldoutOpen: 1
+  Group: 0
+  prefixField: -1
+  Synchronization: 3
+  OwnershipTransfer: 0
+  observableSearch: 2
+  ObservedComponents: []
+  sceneViewId: 1
+  InstantiationId: 0
+  isRuntimeInstantiated: 0
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
