@@ -32,6 +32,7 @@ public class GameSceneManager : MonoBehaviourPun
     private List<string> selectedDiceColors = new List<string>();
     private List<HandCardSelect> selectedDiceCards = new List<HandCardSelect>();
     private PublicCardSelect selectedPublicCard = null;
+    private List<PublicCardSelect> publicCards = new List<PublicCardSelect>();
 
     private void Awake()
     {
@@ -72,6 +73,46 @@ public class GameSceneManager : MonoBehaviourPun
     {
         StartCoroutine(GeneratePublicCardsFromIndices(indices));
     }
+
+    [PunRPC]
+    public void RPC_ChangePublicCard(int cardIndex, string newCardName)
+    {
+        // 找出新貼圖
+        Texture2D newTex = System.Array.Find(cards, tex => tex.name == newCardName);
+        if (newTex == null) return;
+
+        // 找出對應的公牌物件
+        if (cardIndex >= 0 && cardIndex < publiccardContainer.childCount)
+        {
+            var cardObj = publiccardContainer.GetChild(cardIndex);
+            var sel = cardObj.GetComponent<PublicCardSelect>();
+            if (sel != null)
+            {
+                sel.SetCard(newTex);
+                sel.SetSelected(false);
+            }
+        }
+    }
+
+    [PunRPC]
+    public void RPC_RefreshPublicCard(int cardIndex, string newColorName)
+    {
+        if (cardIndex < 0 || cardIndex >= publicCards.Count)
+        {
+            Debug.LogError($"無效的 cardIndex：{cardIndex}");
+            return;
+        }
+
+        Texture2D newTex = System.Array.Find(cards, tex => tex.name == newColorName);
+        if (newTex == null)
+        {
+            Debug.LogError($"找不到顏色為 {newColorName} 的貼圖！");
+            return;
+        }
+
+        publicCards[cardIndex].SetCard(newTex);
+    }
+
     public IEnumerator GeneratePublicCardsFromIndices(int[] indices)
     {
         yield return new WaitForSeconds(0.1f); // 可加 buffer 等待場景或資料準備
@@ -81,6 +122,7 @@ public class GameSceneManager : MonoBehaviourPun
         float spacing = 40f;
         float totalWidth = cardCount * cardWidth + (cardCount - 1) * spacing;
         float startX = -totalWidth / 2 + cardWidth / 2;
+        publicCards.Clear();
 
         for (int i = 0; i < cardCount; i++)
         {
@@ -96,6 +138,7 @@ public class GameSceneManager : MonoBehaviourPun
             if (sel != null)
             {
                 sel.Init(tex);
+                publicCards.Add(sel);
             }
 
             CanvasGroup cg = card.AddComponent<CanvasGroup>();
@@ -175,15 +218,23 @@ public class GameSceneManager : MonoBehaviourPun
         {
             Debug.Log("調和成功！");
 
-            // 換一張新的公牌顏色（隨機）
+            // 找出這張公牌在 list 中的 index
+            int cardIndex = publicCards.IndexOf(selectedPublicCard);
+            if (cardIndex == -1)
+            {
+                Debug.LogError("找不到選取的公牌！");
+                return;
+            }
+
+            // 換一張不同的顏色
             Texture2D newTex;
             do
             {
                 newTex = cards[Random.Range(0, cards.Length)];
             } while (newTex.name == selectedPublicCard.cardColorName);
 
-            selectedPublicCard.ChangeCardTo(newTex);
-            selectedPublicCard.SetSelected(false);
+            // 呼叫 RPC 同步給所有人（包含自己）
+            photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, newTex.name);
 
             foreach (var card in selectedHandCards)
             {

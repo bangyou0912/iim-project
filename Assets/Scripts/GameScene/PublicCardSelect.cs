@@ -40,8 +40,7 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
         originalAngle = transform.localEulerAngles.z;
         targetAngle = originalAngle;
 
-        if (highlighted != null)
-            highlighted.gameObject.SetActive(false);
+        SetSelected(false);
     }
 
     void Update()
@@ -110,5 +109,12 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
             rawImage.texture = newTex;
             cardColorName = newTex.name;
         }
+        Debug.Log($"[PublicCardSelect] 公牌換成：{newTex.name}");
+    }
+
+    public void SetCard(Texture2D tex)
+    {
+        ChangeCardTo(tex);
+        SetSelected(false);  // 確保同步後不會殘留選取狀態
     }
 }
