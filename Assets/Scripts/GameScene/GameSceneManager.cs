@@ -50,6 +50,7 @@ public class GameSceneManager : MonoBehaviourPun
         if (PhotonNetwork.IsMasterClient)
         {
             StartCoroutine(GeneratePublicCards(1f));
+            TurnManager.Instance.StartGame();
         }
     }
 
@@ -112,6 +113,7 @@ public class GameSceneManager : MonoBehaviourPun
 
         publicCards[cardIndex].SetCard(newTex);
     }
+
 
     public IEnumerator GeneratePublicCardsFromIndices(int[] indices)
     {
@@ -192,12 +194,18 @@ public class GameSceneManager : MonoBehaviourPun
 
     public void OnPublicCardClicked(PublicCardSelect card)
     {
+        if (!TurnManager.IsMyTurn)
+        {
+            Debug.Log("不是你的回合，不能調和公牌！");
+            return;
+        }
+
         // 清除前一張公牌的選取狀態
         if (selectedPublicCard != null && selectedPublicCard != card)
             selectedPublicCard.SetSelected(false);
 
         selectedPublicCard = card;
-        selectedPublicCard.SetSelected(true); // ← 新增這行
+        selectedPublicCard.SetSelected(true); // 標記為選取
         ShowConfirmPanel();
 
         Debug.Log("想調和的公牌：" + card.cardColorName);
@@ -208,6 +216,12 @@ public class GameSceneManager : MonoBehaviourPun
 
     public void OnConfirmHarmonize()
     {
+        if (!TurnManager.IsMyTurn)
+        {
+            Debug.Log("非玩家回合不能調和！");
+            return;
+        }
+
         if (selectedPublicCard == null) return;
 
         string targetColor = selectedPublicCard.cardColorName;
@@ -218,7 +232,6 @@ public class GameSceneManager : MonoBehaviourPun
         {
             Debug.Log("調和成功！");
 
-            // 找出這張公牌在 list 中的 index
             int cardIndex = publicCards.IndexOf(selectedPublicCard);
             if (cardIndex == -1)
             {
@@ -226,14 +239,12 @@ public class GameSceneManager : MonoBehaviourPun
                 return;
             }
 
-            // 換一張不同的顏色
             Texture2D newTex;
             do
             {
                 newTex = cards[Random.Range(0, cards.Length)];
             } while (newTex.name == selectedPublicCard.cardColorName);
 
-            // 呼叫 RPC 同步給所有人（包含自己）
             photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, newTex.name);
 
             foreach (var card in selectedHandCards)
