@@ -1,31 +1,32 @@
-using Photon.Pun;
+// 整合第一版 + 第二版，保留所有功能並加入敵方手牌顯示功能
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Photon.Pun;
+using Photon.Realtime;
 
-public class GameSceneManager : MonoBehaviourPun
+public class GameSceneManager : MonoBehaviourPunCallbacks
 {
     public static GameSceneManager Instance;
 
-    [Header("公牌設定")]
+    [Header("卡牌設定")]
     public GameObject publicCardPrefab;
+    public RectTransform publiccardContainer;
     public Texture2D[] cards;
-    [SerializeField]
-    RectTransform publiccardContainer;
-    [SerializeField]
-    Image yellow_retangular;
-
-    [Header("手牌設定")]
+    public Image yellow_retangular;
     public HandCardGenerator handCardGenerator;
 
-    [Header("提示面板")]
-    [SerializeField]
-    GameObject confirmPanel;
-    [SerializeField]
-    Button confirmButton;
-    [SerializeField]
-    Button cancelButton;
+    [Header("UI 元素")]
+    public GameObject confirmPanel;
+    public Button confirmButton;
+    public Button cancelButton;
+
+    [Header("敵方 UI")]
+    [SerializeField] private GameObject cardBackPrefab;
+    [SerializeField] private Transform enemyZone_Top;
+    [SerializeField] private Transform enemyZone_Left;
+    [SerializeField] private Transform enemyZone_Right;
 
     private List<string> selectedHandColors = new List<string>();
     private List<HandCardSelect> selectedHandCards = new List<HandCardSelect>();
@@ -33,6 +34,8 @@ public class GameSceneManager : MonoBehaviourPun
     private List<HandCardSelect> selectedDiceCards = new List<HandCardSelect>();
     private PublicCardSelect selectedPublicCard = null;
     private List<PublicCardSelect> publicCards = new List<PublicCardSelect>();
+
+    private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
 
     private void Awake()
     {
@@ -46,7 +49,10 @@ public class GameSceneManager : MonoBehaviourPun
         confirmPanel.SetActive(false);
         confirmButton.onClick.AddListener(OnConfirmHarmonize);
         cancelButton.onClick.AddListener(CloseConfirmPanel);
+
         handCardGenerator.StartGeneratingCards();
+        StartCoroutine(DelaySyncHandCards());
+
         if (PhotonNetwork.IsMasterClient)
         {
             StartCoroutine(GeneratePublicCards(1f));
@@ -60,12 +66,10 @@ public class GameSceneManager : MonoBehaviourPun
 
         int cardCount = 4;
         int[] indices = new int[cardCount];
-
         for (int i = 0; i < cardCount; i++)
         {
             indices[i] = Random.Range(0, cards.Length);
         }
-
         photonView.RPC("RPC_GeneratePublicCards", RpcTarget.All, indices);
     }
 
@@ -75,49 +79,9 @@ public class GameSceneManager : MonoBehaviourPun
         StartCoroutine(GeneratePublicCardsFromIndices(indices));
     }
 
-    [PunRPC]
-    public void RPC_ChangePublicCard(int cardIndex, string newCardName)
-    {
-        // 找出新貼圖
-        Texture2D newTex = System.Array.Find(cards, tex => tex.name == newCardName);
-        if (newTex == null) return;
-
-        // 找出對應的公牌物件
-        if (cardIndex >= 0 && cardIndex < publiccardContainer.childCount)
-        {
-            var cardObj = publiccardContainer.GetChild(cardIndex);
-            var sel = cardObj.GetComponent<PublicCardSelect>();
-            if (sel != null)
-            {
-                sel.SetCard(newTex);
-                sel.SetSelected(false);
-            }
-        }
-    }
-
-    [PunRPC]
-    public void RPC_RefreshPublicCard(int cardIndex, string newColorName)
-    {
-        if (cardIndex < 0 || cardIndex >= publicCards.Count)
-        {
-            Debug.LogError($"無效的 cardIndex：{cardIndex}");
-            return;
-        }
-
-        Texture2D newTex = System.Array.Find(cards, tex => tex.name == newColorName);
-        if (newTex == null)
-        {
-            Debug.LogError($"找不到顏色為 {newColorName} 的貼圖！");
-            return;
-        }
-
-        publicCards[cardIndex].SetCard(newTex);
-    }
-
-
     public IEnumerator GeneratePublicCardsFromIndices(int[] indices)
     {
-        yield return new WaitForSeconds(0.1f); // 可加 buffer 等待場景或資料準備
+        yield return new WaitForSeconds(0.1f);
 
         int cardCount = indices.Length;
         float cardWidth = 240f;
@@ -128,9 +92,7 @@ public class GameSceneManager : MonoBehaviourPun
 
         for (int i = 0; i < cardCount; i++)
         {
-            int result = indices[i];
-            Texture2D tex = cards[result];
-
+            Texture2D tex = cards[indices[i]];
             GameObject card = Instantiate(publicCardPrefab, publiccardContainer);
             RectTransform rt = card.GetComponent<RectTransform>();
             rt.sizeDelta = new Vector2(cardWidth, 360);
@@ -146,10 +108,10 @@ public class GameSceneManager : MonoBehaviourPun
             CanvasGroup cg = card.AddComponent<CanvasGroup>();
             cg.alpha = 0;
             StartCoroutine(FadeInCard(cg));
-
             yield return new WaitForSeconds(0.15f);
         }
     }
+
     private IEnumerator FadeInCard(CanvasGroup cg)
     {
         float duration = 0.3f;
@@ -163,6 +125,25 @@ public class GameSceneManager : MonoBehaviourPun
         cg.alpha = 1;
     }
 
+    public void OnPublicCardClicked(PublicCardSelect card)
+    {
+        if (!TurnManager.IsMyTurn)
+        {
+            Debug.Log("不是你的回合，不能調和公牌！");
+            return;
+        }
+
+        if (selectedPublicCard != null && selectedPublicCard != card)
+            selectedPublicCard.SetSelected(false);
+
+        selectedPublicCard = card;
+        selectedPublicCard.SetSelected(true);
+        ShowConfirmPanel();
+    }
+
+    public void ShowConfirmPanel() => confirmPanel.SetActive(true);
+    public void CloseConfirmPanel() => confirmPanel.SetActive(false);
+
     public void OnHandCardSelected(HandCardSelect card)
     {
         if (card.isCardSelected)
@@ -175,69 +156,35 @@ public class GameSceneManager : MonoBehaviourPun
             selectedHandCards.Remove(card);
             selectedHandColors.Remove(card.cardColorName);
         }
-
-        Debug.Log("選取的手牌顏色：" + string.Join(",", selectedHandColors));
     }
+
     public void SelectDiceColor(string color)
     {
         if (!selectedDiceColors.Contains(color))
             selectedDiceColors.Add(color);
-        Debug.Log("選取骰子顏色：" + color);
     }
 
     public void DeselectDiceColor(string color)
     {
         if (selectedDiceColors.Contains(color))
             selectedDiceColors.Remove(color);
-        Debug.Log("取消選取骰子顏色：" + color);
     }
-
-    public void OnPublicCardClicked(PublicCardSelect card)
-    {
-        if (!TurnManager.IsMyTurn)
-        {
-            Debug.Log("不是你的回合，不能調和公牌！");
-            return;
-        }
-
-        // 清除前一張公牌的選取狀態
-        if (selectedPublicCard != null && selectedPublicCard != card)
-            selectedPublicCard.SetSelected(false);
-
-        selectedPublicCard = card;
-        selectedPublicCard.SetSelected(true); // 標記為選取
-        ShowConfirmPanel();
-
-        Debug.Log("想調和的公牌：" + card.cardColorName);
-    }
-
-    public void ShowConfirmPanel() => confirmPanel.SetActive(true);
-    public void CloseConfirmPanel() => confirmPanel.SetActive(false);
 
     public void OnConfirmHarmonize()
     {
-        if (!TurnManager.IsMyTurn)
+        if (!TurnManager.IsMyTurn || selectedPublicCard == null)
         {
-            Debug.Log("非玩家回合不能調和！");
+            Debug.Log("非回合或未選擇公牌");
             return;
         }
 
-        if (selectedPublicCard == null) return;
-
         string targetColor = selectedPublicCard.cardColorName;
-
         bool success = CanHarmonize(targetColor, selectedHandColors, selectedDiceColors, out var usedHand, out var usedDice);
 
         if (success)
         {
-            Debug.Log("調和成功！");
-
             int cardIndex = publicCards.IndexOf(selectedPublicCard);
-            if (cardIndex == -1)
-            {
-                Debug.LogError("找不到選取的公牌！");
-                return;
-            }
+            if (cardIndex == -1) return;
 
             Texture2D newTex;
             do
@@ -248,10 +195,7 @@ public class GameSceneManager : MonoBehaviourPun
             photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, newTex.name);
 
             foreach (var card in selectedHandCards)
-            {
-                if (usedHand.Contains(card.cardColorName))
-                    Destroy(card.gameObject);
-            }
+                if (usedHand.Contains(card.cardColorName)) Destroy(card.gameObject);
 
             selectedHandCards.Clear();
             selectedHandColors.Clear();
@@ -259,28 +203,114 @@ public class GameSceneManager : MonoBehaviourPun
             selectedPublicCard = null;
 
             RearrangeHandCards();
+            SyncMyHandCardsToSystem();
         }
         else
         {
-            Debug.Log("調和失敗！");
+            Debug.Log("調和失敗");
         }
-
         CloseConfirmPanel();
+    }
+
+    [PunRPC]
+    public void RPC_RefreshPublicCard(int cardIndex, string newColorName)
+    {
+        if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
+        Texture2D tex = System.Array.Find(cards, c => c.name == newColorName);
+        if (tex != null)
+            publicCards[cardIndex].SetCard(tex);
+    }
+
+    [PunRPC]
+    public void RPC_SyncHandCards(int actorNumber, string[] colorArray)
+    {
+        playerHands[actorNumber] = new List<string>(colorArray);
+        UpdateEnemyHandUI();
+    }
+
+    public void SyncMyHandCardsToSystem()
+    {
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        HandCardSelect[] cards = Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None);
+        List<string> colorList = new List<string>();
+        foreach (var c in cards) colorList.Add(c.cardColorName);
+
+        photonView.RPC("RPC_SyncHandCards", RpcTarget.All, actor, colorList.ToArray());
+    }
+
+    public void UpdateEnemyHandUI()
+    {
+        foreach (Transform t in enemyZone_Top) Destroy(t.gameObject);
+        foreach (Transform t in enemyZone_Left) Destroy(t.gameObject);
+        foreach (Transform t in enemyZone_Right) Destroy(t.gameObject);
+
+        Player[] players = PhotonNetwork.PlayerList;
+        int self = PhotonNetwork.LocalPlayer.ActorNumber;
+
+        foreach (var p in players)
+        {
+            if (p.ActorNumber == self || !playerHands.ContainsKey(p.ActorNumber)) continue;
+
+            int count = playerHands[p.ActorNumber].Count;
+            Transform zone = GetEnemyZoneByIndex(players, p);
+            for (int i = 0; i < count; i++)
+            {
+                GameObject card = Instantiate(cardBackPrefab, zone);
+                RectTransform rt = card.GetComponent<RectTransform>();
+
+                if (zone == enemyZone_Right)
+                {
+                    rt.localRotation = Quaternion.Euler(0, 0, 90f);
+                    rt.sizeDelta = new Vector2(120f, 180f);
+                    rt.anchoredPosition = new Vector2(0, -i * 13); // 垂直往下排列
+                }
+                else if (zone == enemyZone_Left)
+                {
+                    rt.localRotation = Quaternion.Euler(0, 0, -90f);
+                    rt.sizeDelta = new Vector2(120f, 180f);
+                    rt.anchoredPosition = new Vector2(0, -i * 13);
+                }
+                else if (zone == enemyZone_Top)
+                {
+                    rt.localRotation = Quaternion.identity;
+                    rt.sizeDelta = new Vector2(120f, 180f);
+                    rt.anchoredPosition = new Vector2(i * 13, 0); // 水平排
+                }
+            }
+        }
+    }
+
+    private Transform GetEnemyZoneByIndex(Player[] players, Player enemy)
+    {
+        List<Player> sorted = new List<Player>(players);
+        sorted.Remove(PhotonNetwork.LocalPlayer);
+        sorted.Sort((a, b) => a.ActorNumber.CompareTo(b.ActorNumber));
+
+        int index = sorted.IndexOf(enemy);
+        if (index == 0) return enemyZone_Right;
+        else if (index == 1) return enemyZone_Top;
+        else return enemyZone_Left;
+    }
+
+    private IEnumerator DelaySyncHandCards()
+    {
+        yield return new WaitForSeconds(0.5f);
+        SyncMyHandCardsToSystem();
     }
 
     private Dictionary<string, List<List<string>>> colorMixingRules = new Dictionary<string, List<List<string>>>
     {
-        { "紅", new List<List<string>> { new List<string>{ "洋紅", "黃" }, new List<string>{ "紅" } }},
-        { "綠", new List<List<string>> { new List<string>{ "青", "黃" }, new List<string>{ "綠" } }},
-        { "藍", new List<List<string>> { new List<string>{ "洋紅", "青" }, new List<string>{ "藍" } }},
-        { "紫", new List<List<string>> { new List<string>{ "青", "洋紅", "洋紅" }, new List<string>{ "藍", "洋紅" }, new List<string>{ "紫" } }},
-        { "朱紅", new List<List<string>> { new List<string>{ "洋紅", "洋紅", "黃" }, new List<string>{ "紅", "洋紅" }, new List<string>{ "朱紅" } }},
-        { "黃綠", new List<List<string>> { new List<string>{ "青", "黃", "黃" }, new List<string>{ "綠", "黃" }, new List<string>{ "黃綠" } }},
-        { "青藍", new List<List<string>> { new List<string>{ "青", "青", "洋紅" }, new List<string>{ "青", "藍" }, new List<string>{ "青藍" } }},
-        { "橙", new List<List<string>> { new List<string>{ "洋紅", "黃", "黃" }, new List<string>{ "紅", "黃" }, new List<string>{ "橙" } }},
-        { "藍綠", new List<List<string>> { new List<string>{ "黃", "青", "青" }, new List<string>{ "綠", "青" }, new List<string>{ "藍綠" } }},
-        { "黑", new List<List<string>> { new List<string>{ "洋紅", "青", "黃" }, new List<string>{ "紅", "青" }, new List<string>{ "黑" } }},
-        { "白", new List<List<string>> { new List<string>{ "白" } }}
+        { "紅", new List<List<string>> { new List<string>{ "洋紅", "黃" }, new List<string>{ "紅" } } },
+        { "綠", new List<List<string>> { new List<string>{ "青", "黃" }, new List<string>{ "綠" } } },
+        { "藍", new List<List<string>> { new List<string>{ "洋紅", "青" }, new List<string>{ "藍" } } },
+        { "紫", new List<List<string>> { new List<string>{ "青", "洋紅", "洋紅" }, new List<string>{ "藍", "洋紅" }, new List<string>{ "紫" } } },
+        { "朱紅", new List<List<string>> { new List<string>{ "洋紅", "洋紅", "黃" }, new List<string>{ "紅", "洋紅" }, new List<string>{ "朱紅" } } },
+        { "黃綠", new List<List<string>> { new List<string>{ "青", "黃", "黃" }, new List<string>{ "綠", "黃" }, new List<string>{ "黃綠" } } },
+        { "青藍", new List<List<string>> { new List<string>{ "青", "青", "洋紅" }, new List<string>{ "青", "藍" }, new List<string>{ "青藍" } } },
+        { "橙", new List<List<string>> { new List<string>{ "洋紅", "黃", "黃" }, new List<string>{ "紅", "黃" }, new List<string>{ "橙" } } },
+        { "藍綠", new List<List<string>> { new List<string>{ "黃", "青", "青" }, new List<string>{ "綠", "青" }, new List<string>{ "藍綠" } } },
+        { "黑", new List<List<string>> { new List<string>{ "洋紅", "青", "黃" }, new List<string>{ "紅", "青" }, new List<string>{ "黑" } } },
+        { "白", new List<List<string>> { new List<string>{ "白" } } },
     };
 
     public bool CanHarmonize(string targetColor, List<string> handCards, List<string> diceColors, out List<string> usedFromHand, out List<string> usedFromDice)
@@ -288,15 +318,14 @@ public class GameSceneManager : MonoBehaviourPun
         usedFromHand = new List<string>();
         usedFromDice = new List<string>();
 
-        if (!colorMixingRules.ContainsKey(targetColor))
-            return false;
+        if (!colorMixingRules.ContainsKey(targetColor)) return false;
 
         foreach (var recipe in colorMixingRules[targetColor])
         {
             List<string> tempHand = new List<string>(handCards);
             List<string> tempDice = new List<string>(diceColors);
-            var matchHand = new List<string>();
-            var matchDice = new List<string>();
+            List<string> matchHand = new List<string>();
+            List<string> matchDice = new List<string>();
             bool matched = true;
 
             foreach (var color in recipe)
@@ -335,8 +364,8 @@ public class GameSceneManager : MonoBehaviourPun
         int count = cards.Length;
         if (count == 0) return;
 
-        float radius = 600f;            // 控制扇形圓弧大小
-        float maxAngle = 35f;           // 最大總角度（左右張開角度的一半）
+        float radius = 600f;
+        float maxAngle = 35f;
         float anglePerCard = (count > 1) ? (2 * maxAngle) / (count - 1) : 0f;
 
         for (int i = 0; i < count; i++)
@@ -350,10 +379,7 @@ public class GameSceneManager : MonoBehaviourPun
             RectTransform rt = cards[i].GetComponent<RectTransform>();
             rt.anchoredPosition = new Vector2(x, y);
             rt.localRotation = Quaternion.Euler(0, 0, -angle);
-
-            cards[i].InitPosition(); // 更新 hover 的原始位置與角度
+            cards[i].InitPosition();
         }
     }
-
-
 }

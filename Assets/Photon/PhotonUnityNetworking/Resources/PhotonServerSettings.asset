@@ -44,6 +44,7 @@ MonoBehaviour:
   - RPC_RefreshPublicCard
   - RequestNextTurn
   - RPC_StartTurn
+  - RPC_SyncHandCards
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
