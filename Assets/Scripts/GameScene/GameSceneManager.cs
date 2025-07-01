@@ -262,19 +262,19 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                 {
                     rt.localRotation = Quaternion.Euler(0, 0, 90f);
                     rt.sizeDelta = new Vector2(120f, 180f);
-                    rt.anchoredPosition = new Vector2(0, -i * 13); // 垂直往下排列
+                    rt.anchoredPosition = new Vector2(0, -i * 30); // 垂直往下排列
                 }
                 else if (zone == enemyZone_Left)
                 {
                     rt.localRotation = Quaternion.Euler(0, 0, -90f);
                     rt.sizeDelta = new Vector2(120f, 180f);
-                    rt.anchoredPosition = new Vector2(0, -i * 13);
+                    rt.anchoredPosition = new Vector2(0, -i * 30);
                 }
                 else if (zone == enemyZone_Top)
                 {
                     rt.localRotation = Quaternion.identity;
                     rt.sizeDelta = new Vector2(120f, 180f);
-                    rt.anchoredPosition = new Vector2(i * 13, 0); // 水平排
+                    rt.anchoredPosition = new Vector2(i * 30, 0); // 水平排
                 }
             }
         }
