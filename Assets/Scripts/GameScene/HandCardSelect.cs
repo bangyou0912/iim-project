@@ -24,6 +24,7 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
     void Start()
     {
         InitPosition();
+
     }
 
     public void InitPosition()
@@ -55,7 +56,6 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
     {
         isCardSelected = !isCardSelected;
         ApplySelectionVisual();
-
         GameSceneManager.Instance.OnHandCardSelected(this);
     }
 

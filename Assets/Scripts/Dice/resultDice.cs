@@ -1,9 +1,10 @@
-
 using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Collections;
+using UnityEngine.UI;
 
-public class resultDice : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+
+public class resultDice : MonoBehaviour,  IPointerClickHandler,IPointerEnterHandler, IPointerExitHandler
 {
     public Vector3 hoverScale = new Vector3(1.2f, 1.2f, 1.2f); // 放大比例
     public float scaleSpeed = 10f; 
@@ -11,9 +12,19 @@ public class resultDice : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     private Vector3 originalScale;
     private Coroutine scaleCoroutine;
 
+    public string cardColorName;
+    public Image highlighted;
+
+    private bool isHovering = false;
+    public bool isCardSelected { get; private set; } = false;
+
     void Start()
     {
         originalScale = transform.localScale;
+        Sprite sprite = GetComponent<Image>().sprite;
+        if (sprite != null)
+           cardColorName = sprite.name.Split('_')[0];
+        
     }
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -36,6 +47,24 @@ public class resultDice : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
             yield return null;
         }
 
-        transform.localScale = targetScale; // 確保最終大小正確
+        transform.localScale = targetScale; 
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        isCardSelected = !isCardSelected;
+        if (highlighted != null)
+            highlighted.gameObject.SetActive(isCardSelected);
+
+        if (isCardSelected)
+        {
+            GameSceneManager.Instance.SelectDiceColor(cardColorName);
+            print(cardColorName);
+        }
+            
+        else
+            GameSceneManager.Instance.DeselectDiceColor(cardColorName);
+       
+
     }
 }

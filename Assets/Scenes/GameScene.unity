@@ -151,19 +151,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   primaryDiceSprites:
-  - {fileID: -1524397360211684229, guid: 24cc3347374af36499422c989585af3b, type: 3}
-  - {fileID: -1524397360211684229, guid: 24cc3347374af36499422c989585af3b, type: 3}
-  - {fileID: 4866609017168896229, guid: 0c9e4a6c08f4383489db649c9f3d4094, type: 3}
-  - {fileID: 9083422917347122340, guid: 71f93b1ceacdea94eb6020c9a69eb26b, type: 3}
-  - {fileID: -3740706926532943017, guid: d9cf58cb20d51e64cad3b2d388cdf304, type: 3}
-  - {fileID: -6187037286508463275, guid: 5632f67e807dbc94883aee421abb90e6, type: 3}
+  - {fileID: 8283083204548069993, guid: d888a6ce1c8747e4293ea168164d9201, type: 3}
+  - {fileID: -4806017640364955982, guid: f7f44c0e371a98f44aca7f18026b657c, type: 3}
+  - {fileID: 7863037140957787937, guid: 9d05ee878c08ce443bb1c8a68eff4a97, type: 3}
+  - {fileID: -3948583455474115847, guid: 613cfc96b9831e4439c39e9750d4a02e, type: 3}
+  - {fileID: -6149435475882108540, guid: 7f4d24b94d643fe46b54127f80a4d13c, type: 3}
+  - {fileID: 1891866888994415908, guid: ebb3da1b0cfecbe49899136ef6c58975, type: 3}
   secondaryDiceSprites:
-  - {fileID: 1804064790815991713, guid: 11611db73696db442a69ec98723ea584, type: 3}
-  - {fileID: 2090082454602116431, guid: 807ff4345332ac746b2090ef4af6ba99, type: 3}
-  - {fileID: 757649457450457107, guid: 884eea2fe52a64b44942316f4485206a, type: 3}
-  - {fileID: -1406968663340182536, guid: b5dadb7cbc3e12f44bb8a801de84440a, type: 3}
-  - {fileID: -2861207482713130266, guid: bfa22f96270af3341b09eb6490659ae5, type: 3}
-  - {fileID: 3953539787004737337, guid: cc54f383e6c5d5340b4e6daeefda15f4, type: 3}
+  - {fileID: 4965443633737696395, guid: e26ee4a3c97bc774b9171e2cda42c195, type: 3}
+  - {fileID: -1966945691142830005, guid: 408c14f6ce48b8e4da90b1a6599d3b94, type: 3}
+  - {fileID: -6625408670977355273, guid: aa6d06823a38e32449ee895445ca47c5, type: 3}
+  - {fileID: -3344520767212621310, guid: 08cd6dc6d5c57ca439462947dfb38694, type: 3}
+  - {fileID: 2064172553040605988, guid: 644aa36ef0c61984b9eb069481179fe5, type: 3}
+  - {fileID: 3974657449302568919, guid: 7ca4c4f0b848ed24da02965dbe2c8a00, type: 3}
   resultIndex: 0
   diceImage: {fileID: 58935116}
   diceRect: {fileID: 58935117}
@@ -468,7 +468,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -1524397360211684229, guid: 24cc3347374af36499422c989585af3b, type: 3}
+  m_Sprite: {fileID: 7863037140957787937, guid: 9d05ee878c08ce443bb1c8a68eff4a97, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -796,7 +796,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -2861207482713130266, guid: bfa22f96270af3341b09eb6490659ae5, type: 3}
+  m_Sprite: {fileID: 2064172553040605988, guid: 644aa36ef0c61984b9eb069481179fe5, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -2412,19 +2412,19 @@ MonoBehaviour:
   resultText: {fileID: 1539578775}
   diceRoller: {fileID: 58935114}
   primaryResultSprites:
-  - {fileID: -3376898607571464443, guid: 4484f874bc3a0794daa835db0ec5e4ab, type: 3}
-  - {fileID: -3376898607571464443, guid: 4484f874bc3a0794daa835db0ec5e4ab, type: 3}
-  - {fileID: 21300000, guid: b58e8756e5940d641a06aa6dde84a55a, type: 3}
-  - {fileID: 21300000, guid: b58e8756e5940d641a06aa6dde84a55a, type: 3}
-  - {fileID: 7295930162852064975, guid: 499c81b2be2f17d4ea77f7875f279536, type: 3}
-  - {fileID: 7295930162852064975, guid: 499c81b2be2f17d4ea77f7875f279536, type: 3}
+  - {fileID: -635382412726639064, guid: 98b4ecd4cf88b0240b9aed33f958fe41, type: 3}
+  - {fileID: -635382412726639064, guid: 98b4ecd4cf88b0240b9aed33f958fe41, type: 3}
+  - {fileID: 1996284960167177268, guid: ed38677510c7009448a5cf63e5a6c56f, type: 3}
+  - {fileID: 1996284960167177268, guid: ed38677510c7009448a5cf63e5a6c56f, type: 3}
+  - {fileID: 2109456083968508220, guid: d0595539918cbc246b6cfa68e8ad5a7e, type: 3}
+  - {fileID: 2109456083968508220, guid: d0595539918cbc246b6cfa68e8ad5a7e, type: 3}
   secondaryResultSprites:
-  - {fileID: 3122398501800098491, guid: b8fa47e2119e27d469fbdd4f3cce1fc4, type: 3}
-  - {fileID: 3122398501800098491, guid: b8fa47e2119e27d469fbdd4f3cce1fc4, type: 3}
-  - {fileID: -7659079612629124618, guid: 05377d8242eddc24a9ae2d7cf28bd3d4, type: 3}
-  - {fileID: -7659079612629124618, guid: 05377d8242eddc24a9ae2d7cf28bd3d4, type: 3}
-  - {fileID: -6553344796813907267, guid: aa9d0be7bc170aa42a9c93a26b66b03e, type: 3}
-  - {fileID: -6553344796813907267, guid: aa9d0be7bc170aa42a9c93a26b66b03e, type: 3}
+  - {fileID: -5997209430908014660, guid: c989c7d468728e741bb1b6f9694cec79, type: 3}
+  - {fileID: -5997209430908014660, guid: c989c7d468728e741bb1b6f9694cec79, type: 3}
+  - {fileID: -2565817733911359436, guid: 0c55f8133417cad4cba665a1964034e8, type: 3}
+  - {fileID: -2565817733911359436, guid: 0c55f8133417cad4cba665a1964034e8, type: 3}
+  - {fileID: -6704775955668633400, guid: 0abec24299cd0da41b3fab110c3e06a5, type: 3}
+  - {fileID: -6704775955668633400, guid: 0abec24299cd0da41b3fab110c3e06a5, type: 3}
   checkToRoll: {fileID: 1713672775}
   rejectToRoll: {fileID: 1271115733}
   checkToPrimaryDicePanel: {fileID: 655195319}
@@ -3374,7 +3374,7 @@ MonoBehaviour:
     m_Top: 0
     m_Bottom: 20
   m_ChildAlignment: 7
-  m_Spacing: 5
+  m_Spacing: 10
   m_ChildForceExpandWidth: 0
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 0
@@ -3496,7 +3496,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -6187037286508463275, guid: 5632f67e807dbc94883aee421abb90e6, type: 3}
+  m_Sprite: {fileID: 7863037140957787937, guid: 9d05ee878c08ce443bb1c8a68eff4a97, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

@@ -35,6 +35,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private PublicCardSelect selectedPublicCard = null;
     private List<PublicCardSelect> publicCards = new List<PublicCardSelect>();
 
+
     private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
 
     private void Awake()
@@ -201,7 +202,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             selectedHandColors.Clear();
             selectedDiceColors.Clear();
             selectedPublicCard = null;
-
+            
+            DiceManager.Instance.ResetDiceUI();
+            
             RearrangeHandCards();
             SyncMyHandCardsToSystem();
         }
@@ -309,7 +312,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         { "«CÂÅ", new List<List<string>> { new List<string>{ "«C", "«C", "¬v¬õ" }, new List<string>{ "«C", "ÂÅ" }, new List<string>{ "«CÂÅ" } } },
         { "¾í", new List<List<string>> { new List<string>{ "¬v¬õ", "¶À", "¶À" }, new List<string>{ "¬õ", "¶À" }, new List<string>{ "¾í" } } },
         { "ÂÅºñ", new List<List<string>> { new List<string>{ "¶À", "«C", "«C" }, new List<string>{ "ºñ", "«C" }, new List<string>{ "ÂÅºñ" } } },
-        { "¶Â", new List<List<string>> { new List<string>{ "¬v¬õ", "«C", "¶À" }, new List<string>{ "¬õ", "«C" }, new List<string>{ "¶Â" } } },
+        { "¶Â", new List<List<string>> { new List<string>{ "¬v¬õ", "«C", "¶À" }, new List<string>{ "¬õ", "«C" }, new List<string> { "¶À", "ÂÅ" }, new List<string> { "¬v¬õ", "ºñ" },new List<string>{ "¶Â" } } },
         { "¥Õ", new List<List<string>> { new List<string>{ "¥Õ" } } },
     };
 

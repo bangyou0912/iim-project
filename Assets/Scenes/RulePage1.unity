@@ -356,9 +356,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1934841751}
-        m_TargetAssemblyTypeName: RuleDescripton, Assembly-CSharp
-        m_MethodName: 
+      - m_Target: {fileID: 1934841752}
+        m_TargetAssemblyTypeName: RulePage1Manager1_New, Assembly-CSharp
+        m_MethodName: OnClickGoToFrontPage
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

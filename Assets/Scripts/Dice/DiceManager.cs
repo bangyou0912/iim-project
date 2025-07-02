@@ -30,6 +30,13 @@ public class DiceManager : MonoBehaviour
     public bool IsPrim ;
     public int r; // 用來存擲骰結果 index（可外部使用）
 
+    public static DiceManager Instance;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
     void Start()
     {
         diceRoller.onRollComplete = OnDiceRollFinished;
@@ -95,21 +102,30 @@ public class DiceManager : MonoBehaviour
     void OnDiceRollFinished()
     {
         rollCount += 1;
-        // 根據目前骰子的數量決定位置
         r = diceRoller.resultIndex;
         resultDiceContainer.GetComponent<Image>().gameObject.SetActive(true);
         resultText.SetActive(true);
-        // 實例化結果骰子
         GameObject resultDice = Instantiate(resultDicePrefab, resultDiceContainer);
 
-        //根據目前是三原色還是二次色選圖
         Sprite resultSprite = diceRoller.isPrimary
             ? primaryResultSprites[r]
             : secondaryResultSprites[r];
 
-        // 根據骰子的結果圖設定顯示圖片
         resultDice.GetComponent<Image>().sprite = resultSprite;
         mainDiceButton.SetActive(true);
     }
-
+    public void ResetDiceUI()
+    {
+        
+        foreach (Transform child in resultDiceContainer)
+        {
+            Destroy(child.gameObject);
+        }
+        resultDiceContainer.GetComponent<Image>().gameObject.SetActive(false);
+        resultText.SetActive(false);
+        mainDiceButton.SetActive(true);
+        rollCount = 0;
+        diceChoicePanel.SetActive(false);
+        darkBackground.SetActive(false);
+    }
 }
