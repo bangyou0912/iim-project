@@ -34,8 +34,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private List<HandCardSelect> selectedDiceCards = new List<HandCardSelect>();
     private PublicCardSelect selectedPublicCard = null;
     private List<PublicCardSelect> publicCards = new List<PublicCardSelect>();
-
-
+    
+    public GameObject darkBackground;
     private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
 
     private void Awake()
@@ -131,6 +131,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (!TurnManager.IsMyTurn)
         {
             Debug.Log("不是你的回合，不能調和公牌！");
+            //darkBackground.SetActive(TurnManager.IsMyTurn);
             return;
         }
 
@@ -176,6 +177,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (!TurnManager.IsMyTurn || selectedPublicCard == null)
         {
             Debug.Log("非回合或未選擇公牌");
+
             return;
         }
 

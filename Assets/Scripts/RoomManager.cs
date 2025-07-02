@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using TMPro;
 using System.Text;
 using Photon.Realtime;
+using System.Linq;
 public class RoomManager : MonoBehaviourPunCallbacks
 {
     [SerializeField]
@@ -35,7 +36,8 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public void UpdatePlayerList()
     {
         StringBuilder sb = new StringBuilder();
-        foreach (var kvp in PhotonNetwork.CurrentRoom.Players)
+        var sortedPlayers = PhotonNetwork.CurrentRoom.Players.OrderBy(kvp => kvp.Key); 
+        foreach (var kvp in sortedPlayers)
         {
             sb.AppendLine(kvp.Value.NickName);
         }

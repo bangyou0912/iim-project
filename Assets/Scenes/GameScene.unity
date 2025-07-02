@@ -1321,6 +1321,7 @@ MonoBehaviour:
   enemyZone_Top: {fileID: 1876909459}
   enemyZone_Left: {fileID: 1957222577}
   enemyZone_Right: {fileID: 2110036225}
+  darkBackground: {fileID: 1243289563}
 --- !u!114 &566195435
 MonoBehaviour:
   m_ObjectHideFlags: 0
