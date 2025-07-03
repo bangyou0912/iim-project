@@ -1,4 +1,3 @@
-// 整合第一版 + 第二版，保留所有功能並加入敵方手牌顯示功能
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -34,9 +33,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private List<HandCardSelect> selectedDiceCards = new List<HandCardSelect>();
     private PublicCardSelect selectedPublicCard = null;
     private List<PublicCardSelect> publicCards = new List<PublicCardSelect>();
-    
+
     public GameObject darkBackground;
     private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
+    private bool hasSynced = false;
 
     private void Awake()
     {
@@ -52,13 +52,19 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         cancelButton.onClick.AddListener(CloseConfirmPanel);
 
         handCardGenerator.StartGeneratingCards();
-        StartCoroutine(DelaySyncHandCards());
 
         if (PhotonNetwork.IsMasterClient)
         {
             StartCoroutine(GeneratePublicCards(1f));
             TurnManager.Instance.StartGame();
         }
+    }
+
+    public void TrySyncOnceAfterGenerate()
+    {
+        if (hasSynced) return;
+        hasSynced = true;
+        SyncMyHandCardsToSystem();
     }
 
     public IEnumerator GeneratePublicCards(float delay)
@@ -126,12 +132,17 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         cg.alpha = 1;
     }
 
+    private IEnumerator DelaySyncAfterDestroy()
+    {
+        yield return new WaitForEndOfFrame();  
+        SyncMyHandCardsToSystem();             
+    }
+
     public void OnPublicCardClicked(PublicCardSelect card)
     {
         if (!TurnManager.IsMyTurn)
         {
             Debug.Log("不是你的回合，不能調和公牌！");
-            //darkBackground.SetActive(TurnManager.IsMyTurn);
             return;
         }
 
@@ -177,7 +188,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (!TurnManager.IsMyTurn || selectedPublicCard == null)
         {
             Debug.Log("非回合或未選擇公牌");
-
             return;
         }
 
@@ -198,22 +208,28 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, newTex.name);
 
             foreach (var card in selectedHandCards)
-                if (usedHand.Contains(card.cardColorName)) Destroy(card.gameObject);
+            {
+                if (usedHand.Contains(card.cardColorName))
+                    Destroy(card.gameObject); 
+            }
 
             selectedHandCards.Clear();
             selectedHandColors.Clear();
             selectedDiceColors.Clear();
             selectedPublicCard = null;
-            
+
             DiceManager.Instance.ResetDiceUI();
-            
+
             RearrangeHandCards();
-            SyncMyHandCardsToSystem();
+
+            
+            StartCoroutine(DelaySyncAfterDestroy());
         }
         else
         {
             Debug.Log("調和失敗");
         }
+
         CloseConfirmPanel();
     }
 
@@ -266,20 +282,20 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                 if (zone == enemyZone_Right)
                 {
                     rt.localRotation = Quaternion.Euler(0, 0, 90f);
-                    rt.sizeDelta = new Vector2(120f, 180f);
-                    rt.anchoredPosition = new Vector2(0, -i * 30); // 垂直往下排列
+                    rt.sizeDelta = new Vector2(160f, 240f);
+                    rt.anchoredPosition = new Vector2(0, -i * 50);
                 }
                 else if (zone == enemyZone_Left)
                 {
                     rt.localRotation = Quaternion.Euler(0, 0, -90f);
-                    rt.sizeDelta = new Vector2(120f, 180f);
-                    rt.anchoredPosition = new Vector2(0, -i * 30);
+                    rt.sizeDelta = new Vector2(160f, 240f);
+                    rt.anchoredPosition = new Vector2(0, -i * 50);
                 }
                 else if (zone == enemyZone_Top)
                 {
-                    rt.localRotation = Quaternion.identity;
-                    rt.sizeDelta = new Vector2(120f, 180f);
-                    rt.anchoredPosition = new Vector2(i * 30, 0); // 水平排
+                    rt.localRotation = Quaternion.Euler(0, 0, 180f);
+                    rt.sizeDelta = new Vector2(160f, 240f);
+                    rt.anchoredPosition = new Vector2(i * 50, 0);
                 }
             }
         }
@@ -297,12 +313,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         else return enemyZone_Left;
     }
 
-    private IEnumerator DelaySyncHandCards()
-    {
-        yield return new WaitForSeconds(0.5f);
-        SyncMyHandCardsToSystem();
-    }
-
     private Dictionary<string, List<List<string>>> colorMixingRules = new Dictionary<string, List<List<string>>>
     {
         { "紅", new List<List<string>> { new List<string>{ "洋紅", "黃" }, new List<string>{ "紅" } } },
@@ -314,7 +324,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         { "青藍", new List<List<string>> { new List<string>{ "青", "青", "洋紅" }, new List<string>{ "青", "藍" }, new List<string>{ "青藍" } } },
         { "橙", new List<List<string>> { new List<string>{ "洋紅", "黃", "黃" }, new List<string>{ "紅", "黃" }, new List<string>{ "橙" } } },
         { "藍綠", new List<List<string>> { new List<string>{ "黃", "青", "青" }, new List<string>{ "綠", "青" }, new List<string>{ "藍綠" } } },
-        { "黑", new List<List<string>> { new List<string>{ "洋紅", "青", "黃" }, new List<string>{ "紅", "青" }, new List<string> { "黃", "藍" }, new List<string> { "洋紅", "綠" },new List<string>{ "黑" } } },
+        { "黑", new List<List<string>> { new List<string>{ "洋紅", "青", "黃" }, new List<string>{ "紅", "青" }, new List<string> { "黃", "藍" }, new List<string> { "洋紅", "綠" }, new List<string>{ "黑" } } },
         { "白", new List<List<string>> { new List<string>{ "白" } } },
     };
 

@@ -12,10 +12,16 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public Button endTurnButton;
     public TMP_Text turnTimerText;
 
+    [Header("回合時間設定")]
+    [Tooltip("每回合持續時間（秒）")]
+    public float turnDuration = 10f; 
+
+    private float timeRemaining = 0f; 
+
     public int currentTurnActor = -1;
     private int currentPlayerIndex = -1;
     private Coroutine turnCountdown;
-    private float timeRemaining = 10f;
+
     public static bool IsMyTurn => Instance != null && Instance.currentTurnActor == PhotonNetwork.LocalPlayer.ActorNumber;
 
     void Awake()
@@ -63,7 +69,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
         if (isMyTurn)
         {
-            timeRemaining = 10f;
+            timeRemaining = turnDuration; 
             endTurnButton.gameObject.SetActive(true);
             turnTimerText.gameObject.SetActive(true);
             turnCountdown = StartCoroutine(CountdownTimer());
@@ -79,7 +85,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
     {
         while (timeRemaining > 0)
         {
-            turnTimerText.text = $"{timeRemaining}";
+            turnTimerText.text = $"{Mathf.CeilToInt(timeRemaining)}"; 
             yield return new WaitForSeconds(0.1f);
             timeRemaining -= 0.1f;
         }

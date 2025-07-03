@@ -77,6 +77,8 @@ public class HandCardGenerator : MonoBehaviour
 
             yield return new WaitForSeconds(0.15f);
         }
+
+        GameSceneManager.Instance.TrySyncOnceAfterGenerate();
     }
 
     IEnumerator FadeInCard(CanvasGroup cg)
