@@ -16,10 +16,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public Image yellow_retangular;
     public HandCardGenerator handCardGenerator;
 
-    [Header("UI 元素")]
+    [Header("互動視窗")]
     public GameObject confirmPanel;
     public Button confirmButton;
     public Button cancelButton;
+
+    public GameObject failPanel;
+    public Button confirmfailButton;
+    public Button cancelfailButton;
 
     [Header("敵方 UI")]
     [SerializeField] private GameObject cardBackPrefab;
@@ -50,6 +54,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         confirmPanel.SetActive(false);
         confirmButton.onClick.AddListener(OnConfirmHarmonize);
         cancelButton.onClick.AddListener(CloseConfirmPanel);
+        failPanel.SetActive(false);
+        confirmfailButton.onClick.AddListener(GiveupCard);
+        cancelfailButton.onClick.AddListener(ClosefailPanel);
 
         handCardGenerator.StartGeneratingCards();
 
@@ -156,6 +163,13 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void ShowConfirmPanel() => confirmPanel.SetActive(true);
     public void CloseConfirmPanel() => confirmPanel.SetActive(false);
+    public void ShowfailPanel() => failPanel.SetActive(true);
+    public void ClosefailPanel() => failPanel.SetActive(false);
+
+    public void GiveupCard()
+    {
+        ClosefailPanel();
+    }
 
     public void OnHandCardSelected(HandCardSelect card)
     {
@@ -228,6 +242,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         else
         {
             Debug.Log("調和失敗");
+            CloseConfirmPanel();
+            ShowfailPanel();
         }
 
         CloseConfirmPanel();
