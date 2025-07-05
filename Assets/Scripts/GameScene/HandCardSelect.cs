@@ -21,12 +21,29 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
     private bool isHovering = false;
     public bool isCardSelected { get; private set; } = false;
 
+    private HandCardMode currentMode = HandCardMode.Normal;
+    private System.Action<HandCardSelect> onDiscardSelectedCallback;
     void Start()
     {
         InitPosition();
 
     }
 
+    public enum HandCardMode //±óµP¼Ò¦¡or¤@¯ë
+    {
+        Normal,
+        DiscardSelection
+    }
+    public void SetMode(HandCardMode mode, System.Action<HandCardSelect> discardCallback = null)
+    {
+        currentMode = mode;
+        onDiscardSelectedCallback = discardCallback;
+        isCardSelected = false;
+        ApplySelectionVisual();
+    }
+/// <summary>
+/// 
+/// </summary>
     public void InitPosition()
     {
         RectTransform rt = GetComponent<RectTransform>();
@@ -54,9 +71,24 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        isCardSelected = !isCardSelected;
-        ApplySelectionVisual();
-        GameSceneManager.Instance.OnHandCardSelected(this);
+        //isCardSelected = !isCardSelected;
+        //ApplySelectionVisual();
+       // GameSceneManager.Instance.OnHandCardSelected(this);
+
+        switch (currentMode)
+        {
+            case HandCardMode.Normal:
+                isCardSelected = !isCardSelected;
+                ApplySelectionVisual();
+                GameSceneManager.Instance.OnHandCardSelected(this);
+                break;
+
+            case HandCardMode.DiscardSelection:
+                isCardSelected = !isCardSelected;
+                ApplySelectionVisual();
+                onDiscardSelectedCallback?.Invoke(this);
+                break;
+        }
     }
 
     public void OnPointerEnter(PointerEventData eventData)

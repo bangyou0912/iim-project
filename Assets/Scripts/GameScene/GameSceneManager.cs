@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Photon.Pun;
 using Photon.Realtime;
+using static HandCardSelect;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
@@ -25,6 +26,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public Button confirmfailButton;
     public Button cancelfailButton;
 
+    private HandCardSelect pendingDiscardCard = null;
+    public GameObject discardConfirmPanel;
+    public Button discardYesButton;
+    public Button discardNoButton;
+
     [Header("敵方 UI")]
     [SerializeField] private GameObject cardBackPrefab;
     [SerializeField] private Transform enemyZone_Top;
@@ -41,6 +47,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public GameObject darkBackground;
     private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
     private bool hasSynced = false;
+
 
     private void Awake()
     {
@@ -166,11 +173,70 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void ShowfailPanel() => failPanel.SetActive(true);
     public void ClosefailPanel() => failPanel.SetActive(false);
 
-    public void GiveupCard()
+    public void GiveupCard()//棄牌
     {
         ClosefailPanel();
+        EnableDiscardSelection();
+    }
+    public void EnableDiscardSelection()
+    {
+        Debug.Log("請選擇要棄掉的手牌");
+
+        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
+        {
+            //Debug.Log("設定卡牌為 Discard 模式: " + card.cardColorName);
+            card.SetMode(HandCardMode.DiscardSelection, OnHandCardChosenToDiscard);
+        }
+    }
+    public void OnHandCardChosenToDiscard(HandCardSelect card)
+    {
+        pendingDiscardCard = card;
+        ShowDiscardConfirmPanel();
+        Debug.Log("確認是否棄牌");
+    }
+    public void ShowDiscardConfirmPanel()
+    {
+        discardConfirmPanel.SetActive(true);
+        discardYesButton.onClick.RemoveAllListeners();
+        discardNoButton.onClick.RemoveAllListeners();
+
+        discardYesButton.onClick.AddListener(ConfirmDiscard);
+        discardNoButton.onClick.AddListener(CancelDiscard);
     }
 
+    public void HideDiscardConfirmPanel()
+    {
+        discardConfirmPanel.SetActive(false);
+    }
+    public void ConfirmDiscard()
+    {
+        if (pendingDiscardCard != null)
+        {
+            Destroy(pendingDiscardCard.gameObject);
+           
+            RearrangeHandCards();     
+        }
+
+        pendingDiscardCard = null;
+        HideDiscardConfirmPanel();
+        ResetHandCardMode();
+    }
+
+    public void CancelDiscard()
+    {
+        pendingDiscardCard = null;
+        HideDiscardConfirmPanel();
+        EnableDiscardSelection(); 
+        ResetHandCardMode();
+    }
+
+    private void ResetHandCardMode()
+    {
+        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
+        {
+            card.SetMode(HandCardMode.Normal);
+        }
+    }
     public void OnHandCardSelected(HandCardSelect card)
     {
         if (card.isCardSelected)
