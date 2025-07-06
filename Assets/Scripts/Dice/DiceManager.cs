@@ -71,15 +71,14 @@ public class DiceManager : MonoBehaviour
 
     public void OnCheckToRollClicked()
     {
-        if (IsPrim)
+        bool canRoll = GameSceneManager.Instance.TryConsumeGemForDice(IsPrim); // true=三原色, false=二次色
+        if (!canRoll)
         {
-            StartDiceRoll(primary: true);
-        }
-        else
-        {
-            StartDiceRoll(primary: false);
+            Debug.Log("寶石不足，無法擲骰！");
+            return;
         }
 
+        StartDiceRoll(primary: IsPrim);
     }
     public void OnRejectToRollClicked()
     {

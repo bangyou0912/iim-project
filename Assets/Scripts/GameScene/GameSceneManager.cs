@@ -5,6 +5,7 @@ using UnityEngine.UI;
 using Photon.Pun;
 using Photon.Realtime;
 using static HandCardSelect;
+using TMPro;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
@@ -48,6 +49,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
     private bool hasSynced = false;
 
+    private Dictionary<int, int> playerGems = new Dictionary<int, int>();
+
+    [Header("寶石獎勵面板")]
+    public GameObject gemRewardPanel_1;
+    public GameObject gemRewardPanel_2;
+    public GameObject gemRewardPanel_3;
+    public TMP_Text gemText;
+
 
     private void Awake()
     {
@@ -71,6 +80,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         {
             StartCoroutine(GeneratePublicCards(1f));
             TurnManager.Instance.StartGame();
+        }
+
+        foreach (var player in PhotonNetwork.PlayerList)
+        {
+            playerGems[player.ActorNumber] = 3;
+            UpdateGemUI();
         }
     }
 
@@ -273,6 +288,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         string targetColor = selectedPublicCard.cardColorName;
         bool success = CanHarmonize(targetColor, selectedHandColors, selectedDiceColors, out var usedHand, out var usedDice);
+        int gemReward = 0;
 
         if (success)
         {
@@ -304,6 +320,18 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             
             StartCoroutine(DelaySyncAfterDestroy());
+            CloseConfirmPanel();
+
+            if (usedHand.Count > 0 && usedDice.Count == 0)
+                gemReward = 3;
+            else if (usedHand.Count > 0 && usedDice.Count > 0)
+                gemReward = 2;
+            else if (usedHand.Count == 0 && usedDice.Count > 0)
+                gemReward = 1;
+            int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+            playerGems[actor] += gemReward;
+            UpdateGemUI();
+            ShowGemRewardPanel(gemReward);
         }
         else
         {
@@ -311,8 +339,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             CloseConfirmPanel();
             ShowfailPanel();
         }
-
-        CloseConfirmPanel();
     }
 
     [PunRPC]
@@ -478,5 +504,53 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             rt.localRotation = Quaternion.Euler(0, 0, -angle);
             cards[i].InitPosition();
         }
+    }
+
+    public bool TryConsumeGemForDice(bool isPrimaryColorDice)
+    {
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        int cost = isPrimaryColorDice ? 1 : 2;
+
+        if (!playerGems.ContainsKey(actor)) return false;
+        if (playerGems[actor] < cost)
+        {
+            Debug.Log("寶石不足！");
+            return false;
+        }
+
+        playerGems[actor] -= cost;
+        UpdateGemUI(); // 顯示更新
+        return true;
+    }
+
+    public void UpdateGemUI()
+    {
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        if (playerGems.ContainsKey(actor))
+            gemText.text = $"{playerGems[actor]}";
+    }
+
+    public void ShowGemRewardPanel(int rewardAmount)
+    {
+        GameObject panelToShow = null;
+
+        switch (rewardAmount)
+        {
+            case 1: panelToShow = gemRewardPanel_1; break;
+            case 2: panelToShow = gemRewardPanel_2; break;
+            case 3: panelToShow = gemRewardPanel_3; break;
+        }
+
+        if (panelToShow != null)
+        {
+            StartCoroutine(ShowAndHidePanel(panelToShow, 1f));
+        }
+    }
+
+    private IEnumerator ShowAndHidePanel(GameObject panel, float duration)
+    {
+        panel.SetActive(true);
+        yield return new WaitForSeconds(duration);
+        panel.SetActive(false);
     }
 }
