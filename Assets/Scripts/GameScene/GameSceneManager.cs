@@ -231,7 +231,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             RearrangeHandCards();
         }
 
-        
+
         Texture2D[] primaryColors = handCardGenerator.primaryColors;
         Texture2D randomPrimary = primaryColors[Random.Range(0, primaryColors.Length)];
 
@@ -242,11 +242,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         HandCardSelect hcs = newCard.GetComponent<HandCardSelect>();
         hcs.cardColorName = randomPrimary.name;
         hcs.SetMode(HandCardMode.Normal);
-        hcs.InitPosition(); 
+        hcs.InitPosition();
 
-        RearrangeHandCards();
-
-        
+        StartCoroutine(DelayRearrange());
         SyncMyHandCardsToSystem();
 
         pendingDiscardCard = null;
@@ -313,6 +311,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             int cardIndex = publicCards.IndexOf(selectedPublicCard);
             if (cardIndex == -1) return;
 
+            // 隨機替換 public card
             Texture2D newTex;
             do
             {
@@ -321,12 +320,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, newTex.name);
 
+            // 收集要銷毀的手牌
+            List<GameObject> cardsToDestroy = new List<GameObject>();
             foreach (var card in selectedHandCards)
             {
                 if (usedHand.Contains(card.cardColorName))
-                    Destroy(card.gameObject); 
+                    cardsToDestroy.Add(card.gameObject);
             }
 
+            // 清空選取資料
             selectedHandCards.Clear();
             selectedHandColors.Clear();
             selectedDiceColors.Clear();
@@ -334,23 +336,33 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             DiceManager.Instance.ResetDiceUI();
 
-            RearrangeHandCards();
+            // 銷毀卡牌
+            foreach (var obj in cardsToDestroy)
+            {
+                Destroy(obj);
+            }
 
-            
+            // 延遲重新排列與同步
+            StartCoroutine(DelayRearrange());
             StartCoroutine(DelaySyncAfterDestroy());
+
             CloseConfirmPanel();
 
+            // 寶石獎勵邏輯
             if (usedHand.Count > 0 && usedDice.Count == 0)
                 gemReward = 3;
             else if (usedHand.Count > 0 && usedDice.Count > 0)
                 gemReward = 2;
             else if (usedHand.Count == 0 && usedDice.Count > 0)
                 gemReward = 1;
+
             int actor = PhotonNetwork.LocalPlayer.ActorNumber;
             playerGems[actor] += gemReward;
+
             UpdateGemUI();
             ShowGemRewardPanel(gemReward);
         }
+
         else
         {
             Debug.Log("調和失敗");
@@ -501,31 +513,48 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void RearrangeHandCards()
     {
-        HandCardSelect[] cards = Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None);
-        int count = cards.Length;
+        List<HandCardSelect> cards = new List<HandCardSelect>();
+        for (int i = 0; i < handCardGenerator.cardContainer.childCount; i++)
+        {
+            HandCardSelect hcs = handCardGenerator.cardContainer.GetChild(i).GetComponent<HandCardSelect>();
+            if (hcs != null) cards.Add(hcs);
+        }
+
+        cards.Sort((a, b) => a.cardColorName.CompareTo(b.cardColorName));
+
+        int count = cards.Count;
         if (count == 0) return;
 
-        float radius = 800f;
-        float angleRange = 30f;
+        float cardWidth = cards[0].GetComponent<RectTransform>().sizeDelta.x;
+        float containerWidth = handCardGenerator.cardContainer.rect.width;
 
-        float angleStep = (count > 1) ? (angleRange * 2) / (count - 1) : 0f;
-        float startAngle = -angleRange;
+        float maxSpacing = cardWidth + 20f;  // 正常間距
+        float spacing = maxSpacing;
+
+        // 如果卡牌總寬超過容器，壓縮 spacing
+        float totalWidth = (count - 1) * spacing;
+        if (totalWidth > containerWidth)
+        {
+            spacing = (containerWidth - 10f) / (count - 1); // 10f 是左右邊距
+        }
+
+        float startX = -containerWidth / 2f + cardWidth / 2f; // 從最左邊開始（置中錨點）
 
         for (int i = 0; i < count; i++)
         {
-            float angle = startAngle + i * angleStep;
-            float radians = angle * Mathf.Deg2Rad;
-
-            float x = Mathf.Sin(radians) * radius;
-            float y = Mathf.Cos(radians) * radius - radius;
+            float x = startX + i * spacing;
+            float y = 0f;
 
             RectTransform rt = cards[i].GetComponent<RectTransform>();
             rt.anchoredPosition = new Vector2(x, y);
-            rt.localRotation = Quaternion.Euler(0, 0, -angle);
+            rt.localRotation = Quaternion.identity;
 
             cards[i].InitPosition();
         }
     }
+
+
+
 
 
     public bool TryConsumeGemForDice(bool isPrimaryColorDice)
@@ -575,4 +604,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         yield return new WaitForSeconds(duration);
         panel.SetActive(false);
     }
+
+    private IEnumerator DelayRearrange()
+    {
+        yield return null; // 等待一個 frame，讓 Destroy 完成
+        RearrangeHandCards();
+    }
+
 }
