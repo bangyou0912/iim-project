@@ -228,14 +228,32 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (pendingDiscardCard != null)
         {
             Destroy(pendingDiscardCard.gameObject);
-           
-            RearrangeHandCards();     
+            RearrangeHandCards();
         }
+
+        
+        Texture2D[] primaryColors = handCardGenerator.primaryColors;
+        Texture2D randomPrimary = primaryColors[Random.Range(0, primaryColors.Length)];
+
+        GameObject newCard = Instantiate(handCardGenerator.handCardPrefab, handCardGenerator.cardContainer);
+        RawImage raw = newCard.GetComponent<RawImage>();
+        raw.texture = randomPrimary;
+
+        HandCardSelect hcs = newCard.GetComponent<HandCardSelect>();
+        hcs.cardColorName = randomPrimary.name;
+        hcs.SetMode(HandCardMode.Normal);
+        hcs.InitPosition(); 
+
+        RearrangeHandCards();
+
+        
+        SyncMyHandCardsToSystem();
 
         pendingDiscardCard = null;
         HideDiscardConfirmPanel();
         ResetHandCardMode();
     }
+
 
     public void CancelDiscard()
     {
@@ -487,13 +505,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         int count = cards.Length;
         if (count == 0) return;
 
-        float radius = 600f;
-        float maxAngle = 35f;
-        float anglePerCard = (count > 1) ? (2 * maxAngle) / (count - 1) : 0f;
+        float radius = 800f;
+        float angleRange = 30f;
+
+        float angleStep = (count > 1) ? (angleRange * 2) / (count - 1) : 0f;
+        float startAngle = -angleRange;
 
         for (int i = 0; i < count; i++)
         {
-            float angle = -maxAngle + anglePerCard * i;
+            float angle = startAngle + i * angleStep;
             float radians = angle * Mathf.Deg2Rad;
 
             float x = Mathf.Sin(radians) * radius;
@@ -502,9 +522,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             RectTransform rt = cards[i].GetComponent<RectTransform>();
             rt.anchoredPosition = new Vector2(x, y);
             rt.localRotation = Quaternion.Euler(0, 0, -angle);
+
             cards[i].InitPosition();
         }
     }
+
 
     public bool TryConsumeGemForDice(bool isPrimaryColorDice)
     {
