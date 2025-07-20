@@ -71,9 +71,6 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        //isCardSelected = !isCardSelected;
-        //ApplySelectionVisual();
-       // GameSceneManager.Instance.OnHandCardSelected(this);
 
         switch (currentMode)
         {

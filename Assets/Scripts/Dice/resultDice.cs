@@ -21,6 +21,7 @@ public class resultDice : MonoBehaviour,  IPointerClickHandler,IPointerEnterHand
     void Start()
     {
         originalScale = transform.localScale;
+        //isCardSelected = false;
         Sprite sprite = GetComponent<Image>().sprite;
         if (sprite != null)
            cardColorName = sprite.name.Split('_')[0];
@@ -50,21 +51,30 @@ public class resultDice : MonoBehaviour,  IPointerClickHandler,IPointerEnterHand
         transform.localScale = targetScale; 
     }
 
+    public void SetSelected(bool selected)
+    {
+        isCardSelected = selected;
+
+        if (highlighted != null)
+            highlighted.gameObject.SetActive(selected);
+    }
     public void OnPointerClick(PointerEventData eventData)
     {
         isCardSelected = !isCardSelected;
-        if (highlighted != null)
-            highlighted.gameObject.SetActive(isCardSelected);
+        SetSelected(isCardSelected);
 
         if (isCardSelected)
         {
             GameSceneManager.Instance.SelectDiceColor(cardColorName);
-            print(cardColorName);
+            print("選取："+cardColorName);
         }
-            
+
         else
+        {
             GameSceneManager.Instance.DeselectDiceColor(cardColorName);
-       
+            print("取消選取：" + cardColorName);
+        }
+
 
     }
 }

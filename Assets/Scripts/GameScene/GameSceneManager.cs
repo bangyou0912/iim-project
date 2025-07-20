@@ -192,6 +192,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         ClosefailPanel();
         EnableDiscardSelection();
+        DiceManager.Instance.DeselectResultDiceVisual();
     }
     public void EnableDiscardSelection()
     {
@@ -250,6 +251,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         pendingDiscardCard = null;
         HideDiscardConfirmPanel();
         ResetHandCardMode();
+        DiceManager.Instance.ResetDiceUI();//­«³]»ë¤l
     }
 
 
@@ -284,7 +286,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void SelectDiceColor(string color)
     {
-        if (!selectedDiceColors.Contains(color))
+        //if (!selectedDiceColors.Contains(color))
             selectedDiceColors.Add(color);
     }
 
@@ -456,7 +458,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         { "¬õ", new List<List<string>> { new List<string>{ "¬v¬õ", "¶À" }, new List<string>{ "¬õ" } } },
         { "ºñ", new List<List<string>> { new List<string>{ "«C", "¶À" }, new List<string>{ "ºñ" } } },
         { "ÂÅ", new List<List<string>> { new List<string>{ "¬v¬õ", "«C" }, new List<string>{ "ÂÅ" } } },
-        { "µµ", new List<List<string>> { new List<string>{ "«C", "¬v¬õ", "¬v¬õ" }, new List<string>{ "ÂÅ", "¬v¬õ" }, new List<string>{ "µµ" } } },
+        { "µµ", new List<List<string>> { new List<string>{ "¬v¬õ", "¬v¬õ", "«C" }, new List<string>{ "ÂÅ", "¬v¬õ" }, new List<string>{ "µµ" } } },
         { "¦¶¬õ", new List<List<string>> { new List<string>{ "¬v¬õ", "¬v¬õ", "¶À" }, new List<string>{ "¬õ", "¬v¬õ" }, new List<string>{ "¦¶¬õ" } } },
         { "¶Àºñ", new List<List<string>> { new List<string>{ "«C", "¶À", "¶À" }, new List<string>{ "ºñ", "¶À" }, new List<string>{ "¶Àºñ" } } },
         { "«CÂÅ", new List<List<string>> { new List<string>{ "«C", "«C", "¬v¬õ" }, new List<string>{ "«C", "ÂÅ" }, new List<string>{ "«CÂÅ" } } },
@@ -552,9 +554,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             cards[i].InitPosition();
         }
     }
-
-
-
 
 
     public bool TryConsumeGemForDice(bool isPrimaryColorDice)

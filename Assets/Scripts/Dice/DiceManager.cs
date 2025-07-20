@@ -127,4 +127,15 @@ public class DiceManager : MonoBehaviour
         diceChoicePanel.SetActive(false);
         darkBackground.SetActive(false);
     }
+    public void DeselectResultDiceVisual() //¨ú®øhighLighted
+    {
+        foreach (Transform child in resultDiceContainer)
+        {
+            resultDice dice = child.GetComponent<resultDice>();
+            if (dice != null && dice.isCardSelected)
+            {
+                dice.SetSelected(false);
+            }
+        }
+    }
 }
