@@ -294,6 +294,7 @@ MonoBehaviour:
   rollDuration: 2
   initialRollSpeed: 0.05
   finalRollSpeed: 0.09
+  isRolling: 0
   rollSound: {fileID: 8300000, guid: 35a7e86a2497c9d41ba4290d9d1fd3c2, type: 3}
   landSound: {fileID: 8300000, guid: 17c392e1a2d71cb4ba411ce1220c1a9c, type: 3}
 --- !u!222 &58935115
@@ -1200,6 +1201,7 @@ MonoBehaviour:
   rollDuration: 2
   initialRollSpeed: 0.05
   finalRollSpeed: 0.09
+  isRolling: 0
   rollSound: {fileID: 0}
   landSound: {fileID: 0}
 --- !u!4 &506182131
@@ -1497,7 +1499,7 @@ MonoBehaviour:
   publiccardContainer: {fileID: 795364719}
   cards:
   - {fileID: 2800000, guid: 263e9ae145e22ec4290824855f5c5b17, type: 3}
-  - {fileID: 2800000, guid: f17951968649aba4c91ec1b8bc1e70d1, type: 3}
+  - {fileID: 2800000, guid: 5c4546802060dff4487951d1f44171a4, type: 3}
   - {fileID: 2800000, guid: 5c4546802060dff4487951d1f44171a4, type: 3}
   - {fileID: 2800000, guid: db05c2ed0fb5ede4db3a74f33404df5c, type: 3}
   - {fileID: 2800000, guid: 92ef97f15bd1d7347871f7f36121619b, type: 3}

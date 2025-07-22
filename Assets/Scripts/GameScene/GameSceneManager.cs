@@ -7,6 +7,7 @@ using Photon.Realtime;
 using static HandCardSelect;
 using TMPro;
 using Photon.Pun.Demo.PunBasics;
+//using static System.Net.Mime.MediaTypeNames;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
@@ -108,6 +109,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             indices[i] = Random.Range(0, cards.Length);
         }
         photonView.RPC("RPC_GeneratePublicCards", RpcTarget.All, indices);
+        CheckAndTriggerWhiteCardTransfer();
+        
     }
 
     [PunRPC]
@@ -148,7 +151,144 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             yield return new WaitForSeconds(0.15f);
         }
     }
+    public void CheckAndTriggerWhiteCardTransfer()                  //白色卡功能
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
 
+        List<int> whiteCardIndices = new List<int>();
+
+        for (int i = 0; i < publicCards.Count; i++)
+        {
+            if (publicCards[i].cardColorName == "白")
+            {
+                whiteCardIndices.Add(i);
+            }
+        }
+
+        if (whiteCardIndices.Count > 0)
+        {
+            Debug.Log($"有 {whiteCardIndices.Count} 張白色卡，觸發交換與刷新");
+            StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 3f));
+        }
+    }
+    private IEnumerator TriggerTransferAndRefreshAfterDelay(List<int> indices, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        foreach (int i in indices)
+        {
+            photonView.RPC("RPC_TriggerCardTransfer", RpcTarget.All);
+
+            Texture2D newTex = cards[Random.Range(0, cards.Length)];
+            photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, i, newTex.name);
+        }
+    }
+
+
+    private Dictionary<int, string> pendingTransfers = new Dictionary<int, string>();
+
+    [PunRPC]
+    public void RPC_TriggerCardTransfer()
+    {
+        // 僅對自己手牌操作
+        HandCardSelect[] myHandCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
+        if (myHandCards.Length == 0) return;
+
+        HandCardSelect chosen = myHandCards[Random.Range(0, myHandCards.Length)];
+        string color = chosen.cardColorName;
+        Destroy(chosen.gameObject);
+        StartCoroutine(DelayRearrange());
+
+        Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 選擇要傳出的卡是：{color}");
+
+        // 傳出選中的卡片資訊給 MasterClient
+        photonView.RPC("RPC_SubmitCardForTransfer", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber, color);
+    }
+
+    public Texture2D GetHandCardTextureByName(string colorName) //從手牌堆中尋找對應顏色
+    {
+        foreach (var tex in handCardGenerator.primaryColors)
+            if (tex.name == colorName)
+            {
+                Debug.Log("找到顏色" + tex.name);
+                return tex;
+            }
+
+        foreach (var tex in handCardGenerator.secondaryColors)
+            if (tex.name == colorName)
+            {
+                Debug.Log("找到顏色" + tex.name);
+                return tex;
+            }
+
+        return null;
+    }
+
+    [PunRPC]
+    public void RPC_SubmitCardForTransfer(int actor, string color)
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
+
+        //Debug.Log($"Master 收到來自玩家 {actor} 的卡：{color}");
+        pendingTransfers[actor] = color;
+
+        if (pendingTransfers.Count == PhotonNetwork.PlayerList.Length)
+        {
+            // 確保每位玩家都有提交
+            List<Player> sortedPlayers = new List<Player>(PhotonNetwork.PlayerList);
+            sortedPlayers.Sort((a, b) => a.ActorNumber.CompareTo(b.ActorNumber));
+
+            for (int i = 0; i < sortedPlayers.Count; i++)
+            {
+                int fromActor = sortedPlayers[i].ActorNumber;
+                int toActor = sortedPlayers[(i + 1) % sortedPlayers.Count].ActorNumber;
+
+                if (pendingTransfers.ContainsKey(fromActor))
+                {
+                    string colorToSend = pendingTransfers[fromActor];
+                    Debug.Log($"轉移：從 {fromActor} 的 {colorToSend} 給 {toActor}");
+                    photonView.RPC("RPC_ReceiveCardFromOther", RpcTarget.All, toActor, colorToSend);
+                }
+            }
+
+            pendingTransfers.Clear();
+        }
+    }
+
+    [PunRPC]
+    public void RPC_ReceiveCardFromOther(int receiverActor, string colorName)
+    {
+        if (PhotonNetwork.LocalPlayer.ActorNumber != receiverActor) return;
+
+        Debug.Log($"玩家 {receiverActor} 準備接收一張卡：{colorName}");
+        StartCoroutine(DelayReceiveCard(colorName));
+    }
+
+    private IEnumerator DelayReceiveCard(string colorName)
+    {
+        yield return new WaitForSeconds(1f);
+
+        Texture2D tex = GetHandCardTextureByName(colorName);
+        if (tex == null)
+        {
+            Debug.LogWarning($"無法找到顏色：{colorName}，玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 沒收到卡");
+            yield break;
+        }
+
+        GameObject newCard = Instantiate(handCardGenerator.handCardPrefab, handCardGenerator.cardContainer);
+        RawImage raw = newCard.GetComponent<RawImage>();
+        raw.texture = tex;
+
+        HandCardSelect hcs = newCard.GetComponent<HandCardSelect>();
+        hcs.cardColorName = tex.name;
+        hcs.SetMode(HandCardMode.Normal);
+        hcs.InitPosition();
+
+        Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 成功接收到卡：{colorName}");
+
+        StartCoroutine(DelayRearrange());
+        SyncMyHandCardsToSystem();
+    }
     private IEnumerator FadeInCard(CanvasGroup cg)
     {
         float duration = 0.3f;
@@ -380,7 +520,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
         Texture2D tex = System.Array.Find(cards, c => c.name == newColorName);
         if (tex != null)
+        {
             publicCards[cardIndex].SetCard(tex);
+            if (PhotonNetwork.IsMasterClient)
+                CheckAndTriggerWhiteCardTransfer();
+        }
     }
 
     [PunRPC]
