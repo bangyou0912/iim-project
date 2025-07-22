@@ -14,8 +14,6 @@ public class resultDice : MonoBehaviour,  IPointerClickHandler,IPointerEnterHand
 
     public string cardColorName;
     public Image highlighted;
-
-    private bool isHovering = false;
     public bool isCardSelected { get; private set; } = false;
 
     void Start()

@@ -7,6 +7,7 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
     public string cardColorName;
     public Image highlighted;
     private bool isSelected = false;
+    public bool isHovering = false;
 
     private Vector3 originalPos;
     private Vector3 targetPos;
@@ -16,7 +17,6 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
     private float targetAngle;
 
     private RawImage rawImage;
-    private bool isHovering = false;
 
     public float floatY = 30f;
     public float scaleUp = 1.1f;

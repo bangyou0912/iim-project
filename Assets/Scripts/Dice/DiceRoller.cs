@@ -26,7 +26,7 @@ public class DiceRoller : MonoBehaviour
     public float rollDuration = 2f;
     public float initialRollSpeed = 0.05f; // 一開始超快
     public float finalRollSpeed = 0.09f; // 最後變慢
-    private bool isRolling = false; 
+    public bool isRolling = false; 
 
     public AudioClip rollSound;       // 骰子滾動音效
     public AudioClip landSound;       // 骰子落地音效
