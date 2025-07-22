@@ -6,6 +6,7 @@ using Photon.Pun;
 using Photon.Realtime;
 using static HandCardSelect;
 using TMPro;
+using Photon.Pun.Demo.PunBasics;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
