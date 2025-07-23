@@ -129,4 +129,11 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
             targetAngle = originalAngle;
         }
     }
+
+    public void SetHighlight(bool show)         //白色卡選卡時的效果
+    {
+        if (highlighted != null)
+            highlighted.gameObject.SetActive(show);
+    }
+
 }

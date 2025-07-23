@@ -152,13 +152,13 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             yield return new WaitForSeconds(0.15f);
         }
     }
-
-    private IEnumerator DelayCheckWhiteCard()
+                                                                        
+    private IEnumerator DelayCheckWhiteCard()                                       //白色卡功能
     {
         yield return new WaitForSeconds(0.5f);  
         CheckAndTriggerWhiteCardTransfer();
     }
-    public void CheckAndTriggerWhiteCardTransfer()                  //白色卡功能
+    public void CheckAndTriggerWhiteCardTransfer()                 
     {
         if (!PhotonNetwork.IsMasterClient) return;
 
@@ -181,7 +181,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private IEnumerator TriggerTransferAndRefreshAfterDelay(List<int> indices, float delay)
     {
         yield return new WaitForSeconds(delay);
-
         photonView.RPC("RPC_TriggerCardTransfer", RpcTarget.All);
 
         foreach (int i in indices)
@@ -198,11 +197,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void RPC_TriggerCardTransfer()
     {
         StartCoroutine(EnsureHandCardAndSubmit());
+        
     }
 
     private IEnumerator EnsureHandCardAndSubmit()
     {
-        // 最多等待 2 秒卡牌生成
         float timer = 0f;
         while (handCardGenerator.cardContainer.childCount == 0 && timer < 2f)
         {
@@ -213,16 +212,50 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         HandCardSelect[] myHandCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
         if (myHandCards.Length == 0)
         {
-            Debug.LogWarning($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 沒有卡可提交！");
+            Debug.LogWarning($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 沒有卡可提交，跳過");
+            photonView.RPC("RPC_SkipTransfer", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
             yield break;
         }
 
-        HandCardSelect chosen = myHandCards[Random.Range(0, myHandCards.Length)];
+        yield return StartCoroutine(AnimateCardSelectionCoroutine(myHandCards));
+    }
+
+
+    private IEnumerator AnimateCardSelectionCoroutine(HandCardSelect[] cards) //選牌特效
+    {
+        int totalSteps = cards.Length * 2 + Random.Range(0, cards.Length);
+        int currentIndex = 0;
+
+        for (int i = 0; i < totalSteps; i++)
+        {
+            foreach (var c in cards) c.SetHighlight(false);
+            cards[currentIndex].SetHighlight(true);
+            yield return new WaitForSeconds(0.08f + i * 0.01f);
+            currentIndex = (currentIndex + 1) % cards.Length;
+        }
+
+        foreach (var c in cards) c.SetHighlight(false);
+        HandCardSelect chosen = cards[currentIndex % cards.Length];
+
+        // 閃爍效果
+        float blinkDuration = 2f;
+        float blinkTimer = 0f;
+        bool isOn = true;
+
+        while (blinkTimer < blinkDuration)
+        {
+            chosen.SetHighlight(isOn);
+            isOn = !isOn;
+            yield return new WaitForSeconds(0.2f);
+            blinkTimer += 0.2f;
+        }
+
+        chosen.SetHighlight(false);
         string color = chosen.cardColorName;
         Destroy(chosen.gameObject);
         StartCoroutine(DelayRearrange());
 
-        Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 選擇要傳出的卡是：{color}");
+        Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 最終選擇要傳出的卡是：{color}");
         photonView.RPC("RPC_SubmitCardForTransfer", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber, color);
     }
 
@@ -242,30 +275,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         if (!PhotonNetwork.IsMasterClient) return;
 
-        //Debug.Log($"Master 收到來自玩家 {actor} 的卡：{color}");
         pendingTransfers[actor] = color;
-
-        if (pendingTransfers.Count == PhotonNetwork.PlayerList.Length)
-        {
-            // 確保每位玩家都有提交
-            List<Player> sortedPlayers = new List<Player>(PhotonNetwork.PlayerList);
-            sortedPlayers.Sort((a, b) => a.ActorNumber.CompareTo(b.ActorNumber));
-
-            for (int i = 0; i < sortedPlayers.Count; i++)
-            {
-                int fromActor = sortedPlayers[i].ActorNumber;
-                int toActor = sortedPlayers[(i + 1) % sortedPlayers.Count].ActorNumber;
-
-                if (pendingTransfers.ContainsKey(fromActor))
-                {
-                    string colorToSend = pendingTransfers[fromActor];
-                    Debug.Log($"轉移：從 {fromActor} 的 {colorToSend} 給 {toActor}");
-                    photonView.RPC("RPC_ReceiveCardFromOther", RpcTarget.All, toActor, colorToSend);
-                }
-            }
-
-            pendingTransfers.Clear();
-        }
+        TryResolveTransfer();
     }
 
     [PunRPC]
@@ -301,6 +312,58 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         StartCoroutine(DelayRearrange());
         SyncMyHandCardsToSystem();
     }
+
+    [PunRPC]
+    public void RPC_SkipTransfer(int actorNumber)
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
+
+        if (!pendingTransfers.ContainsKey(actorNumber))
+        {
+            pendingTransfers[actorNumber] = null;
+        }
+
+        TryResolveTransfer();
+    }
+
+    private void TryResolveTransfer()
+    {
+        // 尚未所有玩家提交
+        if (pendingTransfers.Count < PhotonNetwork.PlayerList.Length)
+            return;
+
+        // 收集有提交卡的玩家
+        List<int> activeActors = new List<int>();
+        foreach (var kvp in pendingTransfers)
+        {
+            if (!string.IsNullOrEmpty(kvp.Value))
+            {
+                activeActors.Add(kvp.Key);
+            }
+        }
+
+        if (activeActors.Count < 2)
+        {
+            Debug.Log("提交卡片的人數不足 (<2)，交換取消。");
+            pendingTransfers.Clear();
+            return;
+        }
+
+        activeActors.Sort(); // 保持順序一致
+
+        for (int i = 0; i < activeActors.Count; i++)
+        {
+            int fromActor = activeActors[i];
+            int toActor = activeActors[(i + 1) % activeActors.Count];
+
+            string colorToSend = pendingTransfers[fromActor];
+            photonView.RPC("RPC_ReceiveCardFromOther", RpcTarget.All, toActor, colorToSend);
+            Debug.Log($"轉移：從 {fromActor} 的 {colorToSend} 給 {toActor}");
+        }
+
+        pendingTransfers.Clear();
+    }                                                                                    //白色卡功能結束
+
     private IEnumerator FadeInCard(CanvasGroup cg)
     {
         float duration = 0.3f;
