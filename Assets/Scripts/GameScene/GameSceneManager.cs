@@ -250,13 +250,22 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             blinkTimer += 0.2f;
         }
 
-        chosen.SetHighlight(false);
-        string color = chosen.cardColorName;
-        Destroy(chosen.gameObject);
-        StartCoroutine(DelayRearrange());
+        if (chosen != null)
+        { 
+            chosen.SetHighlight(false);
+            string color = chosen.cardColorName;
+            int actor = PhotonNetwork.LocalPlayer.ActorNumber;
 
-        Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 最終選擇要傳出的卡是：{color}");
-        photonView.RPC("RPC_SubmitCardForTransfer", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber, color);
+            //Destroy(chosen.gameObject);                  
+            StartCoroutine(DelayRearrange());            
+
+            Debug.Log($"玩家 {actor} 最終選擇要傳出的卡是：{color}");
+            photonView.RPC("RPC_SubmitCardForTransfer", RpcTarget.MasterClient, actor, color);
+        }
+        else
+        {
+            Debug.LogWarning("選擇的卡片已不存在，無法提交。");
+        }
     }
 
     public Texture2D GetHandCardTextureByName(string colorName) //從手牌堆中尋找對應顏色
@@ -283,7 +292,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void RPC_ReceiveCardFromOther(int receiverActor, string colorName)
     {
         if (PhotonNetwork.LocalPlayer.ActorNumber != receiverActor) return;
-        //Debug.Log($"玩家 {receiverActor} 準備接收一張卡：{colorName}");
+        Debug.Log($"玩家 {receiverActor} 準備接收一張卡：{colorName}");
         StartCoroutine(DelayReceiveCard(colorName));
     }
 
@@ -357,13 +366,41 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             int toActor = activeActors[(i + 1) % activeActors.Count];
 
             string colorToSend = pendingTransfers[fromActor];
-            photonView.RPC("RPC_ReceiveCardFromOther", RpcTarget.All, toActor, colorToSend);
+            photonView.RPC("RPC_DestroyCardAndReceive", RpcTarget.All, fromActor, toActor, colorToSend);
             Debug.Log($"轉移：從 {fromActor} 的 {colorToSend} 給 {toActor}");
         }
 
         pendingTransfers.Clear();
-    }                                                                                    //白色卡功能結束
+    }                                                                                    
+    [PunRPC]
+    public void RPC_DestroyCardAndReceive(int fromActor, int toActor, string color)
+    {
+        if (PhotonNetwork.LocalPlayer.ActorNumber == fromActor)
+        {
+            // 找手牌中指定顏色卡牌並銷毀
+            HandCardSelect cardToDestroy = FindCardByColor(color);
+            if (cardToDestroy != null)
+            {
+                Destroy(cardToDestroy.gameObject);
+            }
+        }
+        if (PhotonNetwork.LocalPlayer.ActorNumber == toActor)
+        {
+            StartCoroutine(DelayReceiveCard(color));
+            
+        }
+    }                                                                               //白色卡功能結束
 
+    private HandCardSelect FindCardByColor(string color)
+    {
+        HandCardSelect[] handCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
+        foreach (var card in handCards)
+        {
+            if (card.cardColorName == color)
+                return card;
+        }
+        return null;
+    }
     private IEnumerator FadeInCard(CanvasGroup cg)
     {
         float duration = 0.3f;

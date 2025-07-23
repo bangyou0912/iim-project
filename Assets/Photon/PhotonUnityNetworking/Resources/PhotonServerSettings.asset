@@ -49,6 +49,7 @@ MonoBehaviour:
   - RPC_SubmitCardForTransfer
   - RPC_TriggerCardTransfer
   - RPC_SkipTransfer
+  - RPC_DestroyCardAndReceive
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
