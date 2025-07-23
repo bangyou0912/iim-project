@@ -109,7 +109,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             indices[i] = Random.Range(0, cards.Length);
         }
         photonView.RPC("RPC_GeneratePublicCards", RpcTarget.All, indices);
-        CheckAndTriggerWhiteCardTransfer();
         
     }
 
@@ -117,6 +116,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void RPC_GeneratePublicCards(int[] indices)
     {
         StartCoroutine(GeneratePublicCardsFromIndices(indices));
+        if (PhotonNetwork.IsMasterClient)
+            StartCoroutine(DelayCheckWhiteCard());
     }
 
     public IEnumerator GeneratePublicCardsFromIndices(int[] indices)
@@ -151,6 +152,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             yield return new WaitForSeconds(0.15f);
         }
     }
+
+    private IEnumerator DelayCheckWhiteCard()
+    {
+        yield return new WaitForSeconds(0.5f);  
+        CheckAndTriggerWhiteCardTransfer();
+    }
     public void CheckAndTriggerWhiteCardTransfer()                  //白色卡功能
     {
         if (!PhotonNetwork.IsMasterClient) return;
@@ -175,24 +182,40 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         yield return new WaitForSeconds(delay);
 
+        photonView.RPC("RPC_TriggerCardTransfer", RpcTarget.All);
+
         foreach (int i in indices)
         {
-            photonView.RPC("RPC_TriggerCardTransfer", RpcTarget.All);
-
             Texture2D newTex = cards[Random.Range(0, cards.Length)];
             photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, i, newTex.name);
         }
+
     }
 
 
     private Dictionary<int, string> pendingTransfers = new Dictionary<int, string>();
-
     [PunRPC]
     public void RPC_TriggerCardTransfer()
     {
-        // 僅對自己手牌操作
+        StartCoroutine(EnsureHandCardAndSubmit());
+    }
+
+    private IEnumerator EnsureHandCardAndSubmit()
+    {
+        // 最多等待 2 秒卡牌生成
+        float timer = 0f;
+        while (handCardGenerator.cardContainer.childCount == 0 && timer < 2f)
+        {
+            yield return new WaitForSeconds(0.1f);
+            timer += 0.1f;
+        }
+
         HandCardSelect[] myHandCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
-        if (myHandCards.Length == 0) return;
+        if (myHandCards.Length == 0)
+        {
+            Debug.LogWarning($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 沒有卡可提交！");
+            yield break;
+        }
 
         HandCardSelect chosen = myHandCards[Random.Range(0, myHandCards.Length)];
         string color = chosen.cardColorName;
@@ -200,26 +223,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         StartCoroutine(DelayRearrange());
 
         Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 選擇要傳出的卡是：{color}");
-
-        // 傳出選中的卡片資訊給 MasterClient
         photonView.RPC("RPC_SubmitCardForTransfer", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber, color);
     }
 
     public Texture2D GetHandCardTextureByName(string colorName) //從手牌堆中尋找對應顏色
     {
         foreach (var tex in handCardGenerator.primaryColors)
-            if (tex.name == colorName)
-            {
-                Debug.Log("找到顏色" + tex.name);
-                return tex;
-            }
+            if (tex.name == colorName) return tex;
 
         foreach (var tex in handCardGenerator.secondaryColors)
-            if (tex.name == colorName)
-            {
-                Debug.Log("找到顏色" + tex.name);
-                return tex;
-            }
+            if (tex.name == colorName) return tex;
 
         return null;
     }
@@ -259,8 +272,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void RPC_ReceiveCardFromOther(int receiverActor, string colorName)
     {
         if (PhotonNetwork.LocalPlayer.ActorNumber != receiverActor) return;
-
-        Debug.Log($"玩家 {receiverActor} 準備接收一張卡：{colorName}");
+        //Debug.Log($"玩家 {receiverActor} 準備接收一張卡：{colorName}");
         StartCoroutine(DelayReceiveCard(colorName));
     }
 
@@ -522,8 +534,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (tex != null)
         {
             publicCards[cardIndex].SetCard(tex);
-            if (PhotonNetwork.IsMasterClient)
-                CheckAndTriggerWhiteCardTransfer();
+            if(PhotonNetwork.IsMasterClient)
+                StartCoroutine(DelayCheckWhiteCard());
         }
     }
 
