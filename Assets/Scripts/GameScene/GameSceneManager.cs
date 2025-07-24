@@ -575,12 +575,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, newTex.name);
 
-            // 收集要銷毀的手牌
+            // 先複製要銷毀的卡片
             List<GameObject> cardsToDestroy = new List<GameObject>();
             foreach (var card in selectedHandCards)
             {
-                if (usedHand.Contains(card.cardColorName))
+                if (usedHand.Contains(card.cardColorName) && card != null && card.gameObject != null)
+                {
                     cardsToDestroy.Add(card.gameObject);
+                }
             }
 
             // 清空選取資料
@@ -594,7 +596,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             // 銷毀卡牌
             foreach (var obj in cardsToDestroy)
             {
-                Destroy(obj);
+                if (obj != null)
+                    Destroy(obj);
             }
 
             // 延遲重新排列與同步
@@ -616,6 +619,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             UpdateGemUI();
             ShowGemRewardPanel(gemReward);
+            DelayCheckIfAllPlayersNoHandCards();
         }
 
         else
@@ -866,5 +870,56 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         yield return null; // 等待一個 frame，讓 Destroy 完成
         RearrangeHandCards();
     }
+
+    public void DelayCheckIfAllPlayersNoHandCards(float delay = 0.5f)
+    {
+        if (PhotonNetwork.IsMasterClient)
+            StartCoroutine(DelayCheckCoroutine(delay));
+    }
+
+    private IEnumerator DelayCheckCoroutine(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        CheckIfAllPlayersNoHandCards();
+    }
+
+    public void CheckIfAllPlayersNoHandCards()
+    {
+        //if (!PhotonNetwork.IsMasterClient) return;  // 僅主機檢查
+
+        foreach (var kvp in playerHands)
+        {
+            if (kvp.Value.Count > 0)
+            {
+                Debug.Log("還有手牌");
+                return; // 有人還有卡，不結束
+            }
+        }
+
+        Debug.Log("所有玩家手牌已用光，遊戲結束！");
+        EndGame();
+    }
+
+    // 2. 結算寶石與切換場景
+    public void EndGame()
+    {
+        foreach (var player in PhotonNetwork.PlayerList)
+        {
+            int gem = playerGems.ContainsKey(player.ActorNumber) ? playerGems[player.ActorNumber] : 0;
+            player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable
+        {
+            { "finalGem", gem }
+        });
+        }
+
+        StartCoroutine(LoadEndSceneWithDelay(1f));
+    }
+
+    IEnumerator LoadEndSceneWithDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        PhotonNetwork.LoadLevel("EndScene");
+    }
+
 
 }
