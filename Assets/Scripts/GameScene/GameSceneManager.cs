@@ -175,7 +175,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (whiteCardIndices.Count > 0)
         {
             Debug.Log($"有 {whiteCardIndices.Count} 張白色卡，觸發交換與刷新");
-            StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 3f));
+            StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 5f));
         }
     }
     private IEnumerator TriggerTransferAndRefreshAfterDelay(List<int> indices, float delay)
