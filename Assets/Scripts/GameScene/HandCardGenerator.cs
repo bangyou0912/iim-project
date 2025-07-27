@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Photon.Pun;
 
 public class HandCardGenerator : MonoBehaviour
 {
@@ -10,9 +11,40 @@ public class HandCardGenerator : MonoBehaviour
     public Texture2D[] primaryColors;          // 三原色圖
     public Texture2D[] secondaryColors;        // 二次色圖
 
+    private List<Texture2D> primaryDeck = new List<Texture2D>();
+    private List<Texture2D> secondaryDeck = new List<Texture2D>();
+
     public void StartGeneratingCards()
     {
+        PrepareFixedDecks();
         StartCoroutine(GenerateCardsWithDelay(2f));
+    }
+
+    private void PrepareFixedDecks()
+    {
+        primaryDeck.Clear();
+        secondaryDeck.Clear();
+
+        // 加入三原色各 8 張
+        foreach (var tex in primaryColors)
+        {
+            for (int i = 0; i < 8; i++)
+                primaryDeck.Add(tex);
+        }
+
+        // 加入二次色各 3 張
+        foreach (var tex in secondaryColors)
+        {
+            for (int i = 0; i < 3; i++)
+                secondaryDeck.Add(tex);
+        }
+
+        Shuffle(primaryDeck);
+        Shuffle(secondaryDeck);
+
+        // 只保留 8 張二次色
+        if (secondaryDeck.Count > 8)
+            secondaryDeck = secondaryDeck.GetRange(0, 8);
     }
 
     IEnumerator GenerateCardsWithDelay(float delay)
@@ -23,46 +55,45 @@ public class HandCardGenerator : MonoBehaviour
 
     IEnumerator GenerateCards()
     {
-        List<Texture2D> selectedTextures = new List<Texture2D>();
+        int playerIndex = PhotonNetwork.LocalPlayer.ActorNumber - 1;
+
+        List<Texture2D> myCards = new List<Texture2D>();
 
         for (int i = 0; i < 6; i++)
         {
-            int index = Random.Range(0, primaryColors.Length);
-            selectedTextures.Add(primaryColors[index]);
+            int index = playerIndex * 6 + i;
+            if (index < primaryDeck.Count)
+                myCards.Add(primaryDeck[index]);
         }
 
         for (int i = 0; i < 2; i++)
         {
-            int index = Random.Range(0, secondaryColors.Length);
-            selectedTextures.Add(secondaryColors[index]);
+            int index = playerIndex * 2 + i;
+            if (index < secondaryDeck.Count)
+                myCards.Add(secondaryDeck[index]);
         }
 
-        Shuffle(selectedTextures);
-
-        int cardCount = selectedTextures.Count;
+        // 開始生成手牌
         float radius = 800f;
         float angleRange = 30f;
 
-        for (int i = 0; i < cardCount; i++)
+        for (int i = 0; i < myCards.Count; i++)
         {
             GameObject card = Instantiate(handCardPrefab, cardContainer);
             RawImage raw = card.GetComponent<RawImage>();
-            raw.texture = selectedTextures[i];
+            raw.texture = myCards[i];
 
-            // 指派顏色與類型
             HandCardSelect sel = card.GetComponent<HandCardSelect>();
             if (sel != null)
             {
                 sel.cardColorName = raw.texture.name;
                 if (sel.highlighted == null)
-                {
                     sel.highlighted = card.GetComponentInChildren<Image>(true);
-                }
                 sel.InitPosition();
             }
 
-            // 扇形座標與旋轉
-            float angle = Mathf.Lerp(-angleRange, angleRange, i / (cardCount - 1f));
+            //扇形與旋轉
+            float angle = Mathf.Lerp(-angleRange, angleRange, i / (myCards.Count - 1f));
             float radians = angle * Mathf.Deg2Rad;
             float x = Mathf.Sin(radians) * radius;
             float y = Mathf.Cos(radians) * radius - radius;
@@ -105,3 +136,4 @@ public class HandCardGenerator : MonoBehaviour
         }
     }
 }
+
