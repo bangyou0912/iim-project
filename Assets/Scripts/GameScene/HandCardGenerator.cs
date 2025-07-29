@@ -25,14 +25,12 @@ public class HandCardGenerator : MonoBehaviour
         primaryDeck.Clear();
         secondaryDeck.Clear();
 
-        // 加入三原色各 8 張
         foreach (var tex in primaryColors)
         {
             for (int i = 0; i < 8; i++)
                 primaryDeck.Add(tex);
         }
 
-        // 加入二次色各 3 張
         foreach (var tex in secondaryColors)
         {
             for (int i = 0; i < 3; i++)
@@ -42,7 +40,6 @@ public class HandCardGenerator : MonoBehaviour
         Shuffle(primaryDeck);
         Shuffle(secondaryDeck);
 
-        // 只保留 8 張二次色
         if (secondaryDeck.Count > 8)
             secondaryDeck = secondaryDeck.GetRange(0, 8);
     }

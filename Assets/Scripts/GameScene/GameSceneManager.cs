@@ -19,6 +19,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public Texture2D[] cards;
     public Image yellow_retangular;
     public HandCardGenerator handCardGenerator;
+    private List<Texture2D> publicCardPool = new List<Texture2D>();
+    private int publicCardIndex = 0;  // 控制從 publicCardPool 取第幾張
 
     [Header("互動視窗")]
     public GameObject confirmPanel;
@@ -80,6 +82,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         if (PhotonNetwork.IsMasterClient)
         {
+            InitializePublicCardPool();
             StartCoroutine(GeneratePublicCards(1f));
             TurnManager.Instance.StartGame();
         }
@@ -89,6 +92,46 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             playerGems[player.ActorNumber] = 3;
             UpdateGemUI();
         }
+    }
+
+    private void InitializePublicCardPool()
+    {
+        publicCardPool.Clear();
+
+        string[] secondaryColorNames = { "紅", "綠", "藍" };
+        string[] tertiaryColorNames = { "紫", "橙", "青藍", "黃綠", "朱紅", "藍綠" };
+
+        foreach (var name in secondaryColorNames)
+        {
+            var tex = System.Array.Find(cards, t => t.name == name);
+            if (tex != null) publicCardPool.Add(tex);
+        }
+
+        foreach (var name in tertiaryColorNames)
+        {
+            var tex = System.Array.Find(cards, t => t.name == name);
+            if (tex != null) publicCardPool.Add(tex);
+        }
+
+        var white = System.Array.Find(cards, t => t.name == "白");
+        var black = System.Array.Find(cards, t => t.name == "黑");
+
+        for (int i = 0; i < 8; i++)
+        {
+            if (white != null) publicCardPool.Add(white);
+            if (black != null) publicCardPool.Add(black);
+        }
+
+        // 打亂順序
+        for (int i = 0; i < publicCardPool.Count; i++)
+        {
+            var temp = publicCardPool[i];
+            int randIndex = Random.Range(i, publicCardPool.Count);
+            publicCardPool[i] = publicCardPool[randIndex];
+            publicCardPool[randIndex] = temp;
+        }
+
+        publicCardIndex = 0;
     }
 
     public void TrySyncOnceAfterGenerate()
@@ -101,17 +144,60 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public IEnumerator GeneratePublicCards(float delay)
     {
         yield return new WaitForSeconds(delay);
-
         int cardCount = 4;
-        int[] indices = new int[cardCount];
+        string[] selectedNames = new string[cardCount];
         for (int i = 0; i < cardCount; i++)
         {
-            indices[i] = Random.Range(0, cards.Length);
+            if (publicCardIndex < publicCardPool.Count)
+            {
+                selectedNames[i] = publicCardPool[publicCardIndex].name;
+                publicCardIndex++;
+            }
         }
-        photonView.RPC("RPC_GeneratePublicCards", RpcTarget.All, indices);
-        
-    }
+        photonView.RPC("RPC_GeneratePublicCards_ByNames", RpcTarget.All, selectedNames);
 
+    }
+    [PunRPC]
+    public void RPC_GeneratePublicCards_ByNames(string[] colorNames)
+    {
+        StartCoroutine(GeneratePublicCardsFromNames(colorNames));
+        if (PhotonNetwork.IsMasterClient)
+            StartCoroutine(DelayCheckWhiteCard());
+    }
+    public IEnumerator GeneratePublicCardsFromNames(string[] colorNames)
+    {
+        yield return new WaitForSeconds(0.1f);
+
+        float cardWidth = 240f;
+        float spacing = 40f;
+        float totalWidth = colorNames.Length * cardWidth + (colorNames.Length - 1) * spacing;
+        float startX = -totalWidth / 2 + cardWidth / 2;
+        publicCards.Clear();
+
+        for (int i = 0; i < colorNames.Length; i++)
+        {
+            Texture2D tex = System.Array.Find(cards, t => t.name == colorNames[i]);
+            if (tex == null) continue;
+
+            GameObject card = Instantiate(publicCardPrefab, publiccardContainer);
+            RectTransform rt = card.GetComponent<RectTransform>();
+            rt.sizeDelta = new Vector2(cardWidth, 360);
+            rt.anchoredPosition = new Vector2(startX + i * (cardWidth + spacing), 0);
+
+            PublicCardSelect sel = card.GetComponent<PublicCardSelect>();
+            if (sel != null)
+            {
+                sel.Init(tex);
+                publicCards.Add(sel);
+            }
+
+            CanvasGroup cg = card.AddComponent<CanvasGroup>();
+            cg.alpha = 0;
+            StartCoroutine(FadeInCard(cg));
+            yield return new WaitForSeconds(0.15f);
+        }
+    }
+    /*
     [PunRPC]
     public void RPC_GeneratePublicCards(int[] indices)
     {
@@ -152,7 +238,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             yield return new WaitForSeconds(0.15f);
         }
     }
-                                                                        
+   */                                                                     
     private IEnumerator DelayCheckWhiteCard()                                       //白色卡功能
     {
         yield return new WaitForSeconds(0.5f);  
@@ -185,8 +271,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         foreach (int i in indices)
         {
-            Texture2D newTex = cards[Random.Range(0, cards.Length)];
-            photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, i, newTex.name);
+            if (publicCardIndex < publicCardPool.Count)
+            {
+                int poolIndex = publicCardIndex;
+                publicCardIndex++;
+                photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, i, poolIndex);
+            }
+            else
+            {
+                Debug.LogWarning("已無可用的公牌卡，刷新中止");
+            }
         }
 
     }
@@ -631,17 +725,21 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    public void RPC_RefreshPublicCard(int cardIndex, string newColorName)
+    public void RPC_RefreshPublicCard(int cardIndex, int poolIndex)
     {
         if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
-        Texture2D tex = System.Array.Find(cards, c => c.name == newColorName);
+        if (poolIndex < 0 || poolIndex >= publicCardPool.Count) return;
+
+        Texture2D tex = publicCardPool[poolIndex];
+
         if (tex != null)
         {
             publicCards[cardIndex].SetCard(tex);
-            if(PhotonNetwork.IsMasterClient)
+            if (PhotonNetwork.IsMasterClient)
                 StartCoroutine(DelayCheckWhiteCard());
         }
     }
+
 
     [PunRPC]
     public void RPC_SyncHandCards(int actorNumber, string[] colorArray)
