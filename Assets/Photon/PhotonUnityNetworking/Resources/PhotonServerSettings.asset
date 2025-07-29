@@ -53,6 +53,7 @@ MonoBehaviour:
   - RPC_GeneratePublicCards_ByNames
   - RPC_InitializePublicCardPool
   - RPC_SyncPublicCardPool
+  - RPC_SyncPublicCardIndex
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

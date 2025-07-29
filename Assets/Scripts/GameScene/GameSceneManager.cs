@@ -121,7 +121,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         string[] cardNames = publicCardPool.ConvertAll(tex => tex.name).ToArray();
         photonView.RPC("RPC_SyncPublicCardPool", RpcTarget.Others, cardNames);
-
+        //Debug.Log($"主機已呼叫 RPC_SyncPublicCardPool，傳送 {cardNames.Length} 張卡。");
     }
 
     private void AddToPoolByName(string name, int count)
@@ -143,8 +143,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             if (tex != null)
                 publicCardPool.Add(tex);
         }
-
         Debug.Log($"已同步 publicCardPool，共 {publicCardPool.Count} 張卡。");
+        Debug.Log("publicCardPool 內容：" + string.Join(", ", publicCardPool.ConvertAll(t => t.name)));
     }
 
     public void TrySyncOnceAfterGenerate()
@@ -164,9 +164,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             if (publicCardIndex < publicCardPool.Count)
             {
                 selectedNames[i] = publicCardPool[publicCardIndex].name;
-                publicCardIndex++;
+                UpdatePublicCardIndex(publicCardIndex + 1);
             }
         }
+        UpdatePublicCardIndex(publicCardIndex - 1); //調整第一次生成公牌後的牌庫索引
+        //Debug.Log("初始公牌生成結束：牌庫"+publicCardIndex);
         photonView.RPC("RPC_GeneratePublicCards_ByNames", RpcTarget.All, selectedNames);
 
     }
@@ -210,7 +212,20 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
             StartCoroutine(DelayCheckWhiteCard());
     }
-                                                                  
+    private void UpdatePublicCardIndex(int newIndex) //更新牌庫目前取到第幾張
+    {
+        publicCardIndex = newIndex;
+        photonView.RPC("RPC_SyncPublicCardIndex", RpcTarget.Others, newIndex);
+        //Debug.Log($"MasterClient 更新並同步 publicCardIndex: {newIndex}");
+    }
+
+    [PunRPC]
+    private void RPC_SyncPublicCardIndex(int newIndex)
+    {
+        publicCardIndex = newIndex;
+        //Debug.Log($"同步 publicCardIndex: {publicCardIndex}");
+    }
+
     private IEnumerator DelayCheckWhiteCard()                                       //白色卡功能
     {
         yield return new WaitForSeconds(0.5f);  
@@ -241,24 +256,22 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         yield return new WaitForSeconds(delay);
         photonView.RPC("RPC_TriggerCardTransfer", RpcTarget.All);
 
+        if (!PhotonNetwork.IsMasterClient) yield break;
+
         foreach (int i in indices)
         {
-            if (PhotonNetwork.IsMasterClient && publicCardIndex < publicCardPool.Count)
+            if (publicCardIndex < publicCardPool.Count)
             {
                 int poolIndexToUse = publicCardIndex;
-                publicCardIndex++;
-
-                photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, i, poolIndexToUse);
+                UpdatePublicCardIndex(poolIndexToUse+1);
+                photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, i, poolIndexToUse+1);
             }
             else
             {
                 Debug.LogWarning("已無可用的公牌卡，刷新中止");
             }
         }
-
-
     }
-
 
     private Dictionary<int, string> pendingTransfers = new Dictionary<int, string>();
     [PunRPC]
@@ -634,20 +647,21 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             int cardIndex = publicCards.IndexOf(selectedPublicCard);
             if (cardIndex == -1) return;
 
-            // 隨機替換 public card
-            
                 if (publicCardIndex < publicCardPool.Count)
                 {
-                    int poolIndexToUse = publicCardIndex;
-                    publicCardIndex++;
-
+                    int poolIndexToUse = publicCardIndex+1;
+                    UpdatePublicCardIndex(poolIndexToUse);
                     photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, poolIndexToUse);
+
+                   // Debug.LogWarning("OnConfirmHarmonize：從牌庫中換牌" + publicCardIndex);
                 }
                 else
                 {
                     Debug.LogWarning("公牌牌庫已用完，無法刷新新的卡牌");
                 }
             
+
+
             // 先複製要銷毀的卡片
             List<GameObject> cardsToDestroy = new List<GameObject>();
             foreach (var card in selectedHandCards)
@@ -694,7 +708,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             ShowGemRewardPanel(gemReward);
             DelayCheckIfAllPlayersNoHandCards();
         }
-
         else
         {
             Debug.Log("調和失敗");
@@ -714,6 +727,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (tex != null)
         {
             publicCards[cardIndex].SetCard(tex);
+            //Debug.Log("RPC_RefreshPublicCard:從牌庫中："+ poolIndex);
             if (PhotonNetwork.IsMasterClient)
                 StartCoroutine(DelayCheckWhiteCard());
         }
