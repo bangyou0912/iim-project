@@ -51,6 +51,8 @@ MonoBehaviour:
   - RPC_SkipTransfer
   - RPC_DestroyCardAndReceive
   - RPC_GeneratePublicCards_ByNames
+  - RPC_InitializePublicCardPool
+  - RPC_SyncPublicCardPool
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
