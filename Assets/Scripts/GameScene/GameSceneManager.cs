@@ -262,6 +262,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (whiteCardIndices.Count > 0)
         {
             Debug.Log($"有 {whiteCardIndices.Count} 張白色卡，觸發交換與刷新");
+            TurnManager.Instance?.PauseTurnTimer();
             isWhiteCardExchangeInProgress = true;
             photonView.RPC("RPC_ShowWhiteCardHintText", RpcTarget.All);
             StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 5f));
@@ -409,6 +410,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         pendingTransfers[actor] = color;
         TryResolveTransfer();
+        TurnManager.Instance?.ResumeTurnTimer();
     }
 
     [PunRPC]
@@ -523,8 +525,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.LocalPlayer.ActorNumber == toActor)
         {
             StartCoroutine(DelayReceiveCard(color));
-            
         }
+        SyncMyHandCardsToSystem();
     }                                                                               //白色卡功能結束
 
     private HandCardSelect FindCardByColor(string color)
@@ -1030,7 +1032,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         RearrangeHandCards();
     }
 
-    public void DelayCheckIfAllPlayersNoHandCards(float delay = 0.5f)
+    public void DelayCheckIfAllPlayersNoHandCards(float delay = 1.5f)
     {
         if (PhotonNetwork.IsMasterClient)
             StartCoroutine(DelayCheckCoroutine(delay));

@@ -93,6 +93,7 @@ public class DiceManager : MonoBehaviour
     {
         // 隱藏選擇面板，顯示動畫骰子圖
         OnRejectToRollClicked();
+        TurnManager.Instance?.PauseTurnTimer();
         diceAnimationImage.gameObject.SetActive(true);
         diceRoller.RollDice(primary);
     }
@@ -112,6 +113,7 @@ public class DiceManager : MonoBehaviour
 
         resultDice.GetComponent<Image>().sprite = resultSprite;
         mainDiceButton.SetActive(true);
+        TurnManager.Instance?.ResumeTurnTimer();
     }
     public void ResetDiceUI()
     {

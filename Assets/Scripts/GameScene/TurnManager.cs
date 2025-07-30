@@ -20,6 +20,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
     public int currentTurnActor = -1;
     private int currentPlayerIndex = -1;
+    public bool isPaused = false;
     private Coroutine turnCountdown;
 
     public static bool IsMyTurn => Instance != null && Instance.currentTurnActor == PhotonNetwork.LocalPlayer.ActorNumber;
@@ -81,13 +82,27 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
     }
 
+    public void PauseTurnTimer()
+    {
+        isPaused = true;
+    }
+
+    public void ResumeTurnTimer()
+    {
+        isPaused = false;
+    }
+
     IEnumerator CountdownTimer()
     {
         while (timeRemaining > 0)
         {
-            turnTimerText.text = $"{Mathf.CeilToInt(timeRemaining)}"; 
+            if (!isPaused)
+            {
+                timeRemaining -= 0.1f;
+                turnTimerText.text = $"{Mathf.CeilToInt(timeRemaining)}";
+            }
+
             yield return new WaitForSeconds(0.1f);
-            timeRemaining -= 0.1f;
         }
 
         Debug.Log("時間到，自動結束回合");
