@@ -887,7 +887,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         { "«CÂÅ", new List<List<string>> { new List<string>{ "«C", "«C", "¬v¬õ" }, new List<string>{ "«C", "ÂÅ" } } },
         { "¾í", new List<List<string>> { new List<string>{ "¬v¬õ", "¶À", "¶À" }, new List<string>{ "¬õ", "¶À" } } },
         { "ÂÅºñ", new List<List<string>> { new List<string>{ "¶À", "«C", "«C" }, new List<string>{ "ºñ", "«C" } } },
-        { "¶Â", new List<List<string>> { new List<string>{ "¬v¬õ", "«C", "¶À" }, new List<string>{ "¬õ", "«C" }, new List<string> { "¶À", "ÂÅ" }, new List<string> { "¬v¬õ", "ºñ" } } },
+        { "¶Â", new List<List<string>> { new List<string>{ "¬v¬õ", "«C", "¶À" }, new List<string>{ "¬õ", "«C" }, new List<string> { "¶À", "ÂÅ" }, new List<string> { "¬v¬õ", "ºñ" }, new List<string> { "¬õ", "ÂÅ" }, new List<string> { "¬õ", "ºñ" }, new List<string> { "ÂÅ", "ºñ" } } },
     };
 
     public bool CanHarmonize(string targetColor, List<string> handCards, List<string> diceColors, out List<string> usedFromHand, out List<string> usedFromDice)
