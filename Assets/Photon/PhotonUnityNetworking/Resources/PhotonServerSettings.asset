@@ -57,6 +57,9 @@ MonoBehaviour:
   - RPC_DestroyPublicCard
   - RPC_HideWhiteCardHintText
   - RPC_ShowWhiteCardHintText
+  - RPC_PauseTurnTimer
+  - RPC_ResumeTurnTimer
+  - RPC_UpdateGem
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

@@ -1,3 +1,4 @@
+using Photon.Pun;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -93,7 +94,7 @@ public class DiceManager : MonoBehaviour
     {
         // 隱藏選擇面板，顯示動畫骰子圖
         OnRejectToRollClicked();
-        TurnManager.Instance?.PauseTurnTimer();
+        PhotonView.Get(TurnManager.Instance)?.RPC("RPC_PauseTurnTimer", RpcTarget.All);
         diceAnimationImage.gameObject.SetActive(true);
         diceRoller.RollDice(primary);
     }
@@ -113,7 +114,7 @@ public class DiceManager : MonoBehaviour
 
         resultDice.GetComponent<Image>().sprite = resultSprite;
         mainDiceButton.SetActive(true);
-        TurnManager.Instance?.ResumeTurnTimer();
+        PhotonView.Get(TurnManager.Instance)?.RPC("RPC_ResumeTurnTimer", RpcTarget.All);
     }
     public void ResetDiceUI()
     {

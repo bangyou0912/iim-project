@@ -52,10 +52,41 @@ public class TurnManager : MonoBehaviourPunCallbacks
     {
         if (!PhotonNetwork.IsMasterClient) return;
 
-        currentPlayerIndex = (currentPlayerIndex + 1) % PhotonNetwork.PlayerList.Length;
-        int actorNumber = PhotonNetwork.PlayerList[currentPlayerIndex].ActorNumber;
+        int attempts = 0;
+        int totalPlayers = PhotonNetwork.PlayerList.Length;
 
-        photonView.RPC("RPC_StartTurn", RpcTarget.All, actorNumber);
+        do
+        {
+            currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers;
+            int actorNumber = PhotonNetwork.PlayerList[currentPlayerIndex].ActorNumber;
+
+            bool fallbackAllow = attempts == 0; // 第一圈允許啟動
+
+            if (GameSceneManager.Instance == null)
+            {
+                Debug.LogWarning("GameSceneManager 尚未初始化，允許 actor " + actorNumber + " 進入回合");
+                photonView.RPC("RPC_StartTurn", RpcTarget.All, actorNumber);
+                return;
+            }
+
+            if (fallbackAllow || GameSceneManager.Instance.PlayerHasHandCard(actorNumber))
+            {
+                Debug.Log("進入回合：" + actorNumber);
+                photonView.RPC("RPC_StartTurn", RpcTarget.All, actorNumber);
+                return;
+            }
+
+            attempts++;
+
+        } while (attempts < totalPlayers);
+
+        Debug.LogWarning("所有玩家皆無手牌，停止回合輪轉");
+    }
+
+    IEnumerator DelayStartNextTurn()
+    {
+        yield return new WaitForSeconds(0.5f); // 給時間同步資料
+        StartNextTurn();
     }
 
     [PunRPC]
@@ -70,7 +101,16 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
         if (isMyTurn)
         {
-            timeRemaining = turnDuration; 
+            // 如果我沒有手牌，立即結束回合
+            if (GameSceneManager.Instance != null &&
+                !GameSceneManager.Instance.PlayerHasHandCard(actorNumber))
+            {
+                Debug.Log("[自動跳過回合] 玩家無手牌，立即結束回合");
+                CompleteMyTurn();
+                return;
+            }
+
+            timeRemaining = turnDuration;
             endTurnButton.gameObject.SetActive(true);
             turnTimerText.gameObject.SetActive(true);
             turnCountdown = StartCoroutine(CountdownTimer());
@@ -82,12 +122,14 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public void PauseTurnTimer()
+    [PunRPC]
+    public void RPC_PauseTurnTimer()
     {
         isPaused = true;
     }
 
-    public void ResumeTurnTimer()
+    [PunRPC]
+    public void RPC_ResumeTurnTimer()
     {
         isPaused = false;
     }
@@ -125,7 +167,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
         if (PhotonNetwork.IsMasterClient)
         {
-            StartNextTurn();
+            StartCoroutine(DelayStartNextTurn());
         }
         else
         {

@@ -262,7 +262,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (whiteCardIndices.Count > 0)
         {
             Debug.Log($"有 {whiteCardIndices.Count} 張白色卡，觸發交換與刷新");
-            TurnManager.Instance?.PauseTurnTimer();
+            PhotonView.Get(TurnManager.Instance)?.RPC("RPC_PauseTurnTimer", RpcTarget.All);
             isWhiteCardExchangeInProgress = true;
             photonView.RPC("RPC_ShowWhiteCardHintText", RpcTarget.All);
             StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 5f));
@@ -410,7 +410,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         pendingTransfers[actor] = color;
         TryResolveTransfer();
-        TurnManager.Instance?.ResumeTurnTimer();
+        PhotonView.Get(TurnManager.Instance)?.RPC("RPC_ResumeTurnTimer", RpcTarget.All);
     }
 
     [PunRPC]
@@ -762,6 +762,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             playerGems[actor] += gemReward;
 
             UpdateGemUI();
+            photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
             ShowGemRewardPanel(gemReward);
             DelayCheckIfAllPlayersNoHandCards();
         }
@@ -992,6 +993,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         playerGems[actor] -= cost;
         UpdateGemUI(); // 顯示更新
+        photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
         return true;
     }
 
@@ -1000,6 +1002,18 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         int actor = PhotonNetwork.LocalPlayer.ActorNumber;
         if (playerGems.ContainsKey(actor))
             gemText.text = $"{playerGems[actor]}";
+    }
+
+    [PunRPC]
+    public void RPC_UpdateGem(int actorNumber, int newGemAmount)
+    {
+        playerGems[actorNumber] = newGemAmount;
+
+        if (actorNumber == PhotonNetwork.LocalPlayer.ActorNumber)
+        {
+            Debug.Log($"[RPC_UpdateGem] 玩家 {actorNumber} 寶石同步為 {newGemAmount}");
+            UpdateGemUI();  // 僅更新自己 UI
+        }
     }
 
     public void ShowGemRewardPanel(int rewardAmount)
@@ -1080,5 +1094,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         yield return new WaitForSeconds(delay);
         PhotonNetwork.LoadLevel("EndScene");
+    }
+
+    public bool PlayerHasHandCard(int actorNumber)
+    {
+        return playerHands.ContainsKey(actorNumber) && playerHands[actorNumber].Count > 0;
     }
 }
