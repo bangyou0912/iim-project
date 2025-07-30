@@ -876,17 +876,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     private Dictionary<string, List<List<string>>> colorMixingRules = new Dictionary<string, List<List<string>>>
     {
-        { "¬õ", new List<List<string>> { new List<string>{ "¬v¬õ", "¶À" }, new List<string>{ "¬õ" } } },
-        { "ºñ", new List<List<string>> { new List<string>{ "«C", "¶À" }, new List<string>{ "ºñ" } } },
-        { "ÂÅ", new List<List<string>> { new List<string>{ "¬v¬õ", "«C" }, new List<string>{ "ÂÅ" } } },
-        { "µµ", new List<List<string>> { new List<string>{ "¬v¬õ", "¬v¬õ", "«C" }, new List<string>{ "ÂÅ", "¬v¬õ" }, new List<string>{ "µµ" } } },
-        { "¦¶¬õ", new List<List<string>> { new List<string>{ "¬v¬õ", "¬v¬õ", "¶À" }, new List<string>{ "¬õ", "¬v¬õ" }, new List<string>{ "¦¶¬õ" } } },
-        { "¶Àºñ", new List<List<string>> { new List<string>{ "«C", "¶À", "¶À" }, new List<string>{ "ºñ", "¶À" }, new List<string>{ "¶Àºñ" } } },
-        { "«CÂÅ", new List<List<string>> { new List<string>{ "«C", "«C", "¬v¬õ" }, new List<string>{ "«C", "ÂÅ" }, new List<string>{ "«CÂÅ" } } },
-        { "¾í", new List<List<string>> { new List<string>{ "¬v¬õ", "¶À", "¶À" }, new List<string>{ "¬õ", "¶À" }, new List<string>{ "¾í" } } },
-        { "ÂÅºñ", new List<List<string>> { new List<string>{ "¶À", "«C", "«C" }, new List<string>{ "ºñ", "«C" }, new List<string>{ "ÂÅºñ" } } },
-        { "¶Â", new List<List<string>> { new List<string>{ "¬v¬õ", "«C", "¶À" }, new List<string>{ "¬õ", "«C" }, new List<string> { "¶À", "ÂÅ" }, new List<string> { "¬v¬õ", "ºñ" }, new List<string>{ "¶Â" } } },
-        { "¥Õ", new List<List<string>> { new List<string>{ "¥Õ" } } },
+        { "¬õ", new List<List<string>> { new List<string>{ "¬v¬õ", "¶À" } } },
+        { "ºñ", new List<List<string>> { new List<string>{ "«C", "¶À" } } },
+        { "ÂÅ", new List<List<string>> { new List<string>{ "¬v¬õ", "«C" } } },
+        { "µµ", new List<List<string>> { new List<string>{ "¬v¬õ", "¬v¬õ", "«C" }, new List<string>{ "ÂÅ", "¬v¬õ" } } },
+        { "¦¶¬õ", new List<List<string>> { new List<string>{ "¬v¬õ", "¬v¬õ", "¶À" }, new List<string>{ "¬õ", "¬v¬õ" } } },
+        { "¶Àºñ", new List<List<string>> { new List<string>{ "«C", "¶À", "¶À" }, new List<string>{ "ºñ", "¶À" } } },
+        { "«CÂÅ", new List<List<string>> { new List<string>{ "«C", "«C", "¬v¬õ" }, new List<string>{ "«C", "ÂÅ" } } },
+        { "¾í", new List<List<string>> { new List<string>{ "¬v¬õ", "¶À", "¶À" }, new List<string>{ "¬õ", "¶À" } } },
+        { "ÂÅºñ", new List<List<string>> { new List<string>{ "¶À", "«C", "«C" }, new List<string>{ "ºñ", "«C" } } },
+        { "¶Â", new List<List<string>> { new List<string>{ "¬v¬õ", "«C", "¶À" }, new List<string>{ "¬õ", "«C" }, new List<string> { "¶À", "ÂÅ" }, new List<string> { "¬v¬õ", "ºñ" } } },
     };
 
     public bool CanHarmonize(string targetColor, List<string> handCards, List<string> diceColors, out List<string> usedFromHand, out List<string> usedFromDice)
