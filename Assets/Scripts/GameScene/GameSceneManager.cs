@@ -7,11 +7,13 @@ using Photon.Realtime;
 using static HandCardSelect;
 using TMPro;
 using Photon.Pun.Demo.PunBasics;
+using System.Drawing;
 //using static System.Net.Mime.MediaTypeNames;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
     public static GameSceneManager Instance;
+    private bool isWhiteCardExchangeInProgress = false;
 
     [Header("礟砞﹚")]
     public GameObject publicCardPrefab;
@@ -35,6 +37,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public GameObject discardConfirmPanel;
     public Button discardYesButton;
     public Button discardNoButton;
+
+    public GameObject whiteCardHintText;
+    public GameObject exchangeCardText;
 
     [Header("寄よ UI")]
     [SerializeField] private GameObject cardBackPrefab;
@@ -226,11 +231,20 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         //Debug.Log($"˙ publicCardIndex: {publicCardIndex}");
     }
 
-    private IEnumerator DelayCheckWhiteCard()                                       //フ︹
+    private IEnumerator DelayCheckWhiteCard()                       //フ︹
     {
-        yield return new WaitForSeconds(0.5f);  
+        yield return new WaitForSeconds(2.5f);
+
+        // 单ユ传挡磷い耞瑈祘
+        while (isWhiteCardExchangeInProgress)
+        {
+            Debug.Log("フユ传ご秈︽い单挡");
+            yield return new WaitForSeconds(0.5f);
+        }
+
         CheckAndTriggerWhiteCardTransfer();
     }
+
     public void CheckAndTriggerWhiteCardTransfer()                 
     {
         if (!PhotonNetwork.IsMasterClient) return;
@@ -248,12 +262,17 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (whiteCardIndices.Count > 0)
         {
             Debug.Log($"Τ {whiteCardIndices.Count} 眎フ︹牟祇ユ传籔穝");
+            isWhiteCardExchangeInProgress = true;
+            photonView.RPC("RPC_ShowWhiteCardHintText", RpcTarget.All);
             StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 5f));
+
         }
     }
     private IEnumerator TriggerTransferAndRefreshAfterDelay(List<int> indices, float delay)
     {
         yield return new WaitForSeconds(delay);
+        whiteCardHintText.SetActive(false);
+        photonView.RPC("RPC_HideWhiteCardHintText", RpcTarget.All);
         photonView.RPC("RPC_TriggerCardTransfer", RpcTarget.All);
 
         if (!PhotonNetwork.IsMasterClient) yield break;
@@ -294,13 +313,34 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (myHandCards.Length == 0)
         {
             Debug.LogWarning($"產 {PhotonNetwork.LocalPlayer.ActorNumber} ⊿Τ矗ユ铬筁");
+            exchangeCardText.SetActive(true);
+            exchangeCardText.GetComponent<TextMeshProUGUI>().text = "铬筁セΩユ传";
+            StartCoroutine(ShowExchangeCardTextSequence());
             photonView.RPC("RPC_SkipTransfer", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
             yield break;
         }
 
         yield return StartCoroutine(AnimateCardSelectionCoroutine(myHandCards));
     }
+    [PunRPC]
+    public void RPC_ShowWhiteCardHintText()
+    {
+        whiteCardHintText.SetActive(true);
+    }
 
+    [PunRPC]
+    public void RPC_HideWhiteCardHintText()
+    {
+        whiteCardHintText.SetActive(false);
+    }
+
+    private IEnumerator ShowExchangeCardTextSequence()
+    {
+        exchangeCardText.SetActive(true);
+        yield return new WaitForSeconds(2f);
+        exchangeCardText.GetComponent<TextMeshProUGUI>().text = " ";
+        exchangeCardText.SetActive(false);
+    }
 
     private IEnumerator AnimateCardSelectionCoroutine(HandCardSelect[] cards) //匡礟疭
     {
@@ -336,8 +376,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             chosen.SetHighlight(false);
             string color = chosen.cardColorName;
             int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+            exchangeCardText.SetActive(true);
+            exchangeCardText.GetComponent<TextMeshProUGUI>().text = $"眤盢ユ传も礟琌{color}";
+            StartCoroutine(ShowExchangeCardTextSequence());
 
-            //Destroy(chosen.gameObject);                  
             StartCoroutine(DelayRearrange());            
 
             Debug.Log($"產 {actor} 程沧匡拒璶肚琌{color}");
@@ -373,7 +415,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void RPC_ReceiveCardFromOther(int receiverActor, string colorName)
     {
         if (PhotonNetwork.LocalPlayer.ActorNumber != receiverActor) return;
-        Debug.Log($"產 {receiverActor} 非称钡Μ眎{colorName}");
+        //Debug.Log($"產 {receiverActor} 非称钡Μ眎{colorName}");
         StartCoroutine(DelayReceiveCard(colorName));
     }
 
@@ -396,7 +438,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         hcs.cardColorName = tex.name;
         hcs.SetMode(HandCardMode.Normal);
         hcs.InitPosition();
-
+        exchangeCardText.SetActive(true);
+        exchangeCardText.GetComponent<TextMeshProUGUI>().text = $"Μも礟{colorName}";
+        StartCoroutine(ShowExchangeCardTextSequence());
         Debug.Log($"產 {PhotonNetwork.LocalPlayer.ActorNumber} Θ钡Μ{colorName}");
 
         StartCoroutine(DelayRearrange());
@@ -434,8 +478,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         if (activeActors.Count < 2)
         {
+            exchangeCardText.SetActive(true);
+            exchangeCardText.GetComponent<TextMeshProUGUI>().text = "ユ传计ぃì,ユ传";
+            StartCoroutine(ShowExchangeCardTextSequence());
+
             Debug.Log("矗ユ计ぃì (<2)ユ传");
+            isWhiteCardExchangeInProgress = false;
             pendingTransfers.Clear();
+            if (PhotonNetwork.IsMasterClient)
+                StartCoroutine(DelayCheckWhiteCard());
             return;
         }
 
@@ -452,6 +503,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         pendingTransfers.Clear();
+        isWhiteCardExchangeInProgress = false; 
+
+        if (PhotonNetwork.IsMasterClient)
+            StartCoroutine(DelayCheckWhiteCard());
     }                                                                                    
     [PunRPC]
     public void RPC_DestroyCardAndReceive(int fromActor, int toActor, string color)
@@ -652,12 +707,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                     int poolIndexToUse = publicCardIndex+1;
                     UpdatePublicCardIndex(poolIndexToUse);
                     photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, poolIndexToUse);
-
-                   // Debug.LogWarning("OnConfirmHarmonize眖礟畐い传礟" + publicCardIndex);
+                // Debug.LogWarning("OnConfirmHarmonize眖礟畐い传礟" + publicCardIndex);
                 }
                 else
                 {
                     Debug.LogWarning("そ礟礟畐ノЧ礚猭穝穝礟");
+                    photonView.RPC("RPC_DestroyPublicCard", RpcTarget.All, cardIndex);
                 }
             
 
@@ -727,10 +782,24 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (tex != null)
         {
             publicCards[cardIndex].SetCard(tex);
-            //Debug.Log("RPC_RefreshPublicCard:眖礟畐い"+ poolIndex);
-            if (PhotonNetwork.IsMasterClient)
+            if (!isWhiteCardExchangeInProgress && PhotonNetwork.IsMasterClient)
+            {
                 StartCoroutine(DelayCheckWhiteCard());
+            }
+
         }
+    }
+
+    [PunRPC]
+    public void RPC_DestroyPublicCard(int cardIndex)//礟畐ノЧ璝秸︹Θ碞綪反そ礟
+    {
+        if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
+
+        GameObject toDestroy = publicCards[cardIndex].gameObject;
+        publicCards.RemoveAt(cardIndex);
+        Destroy(toDestroy);
+
+        Debug.LogWarning($"˙綪反そ礟 index: {cardIndex}");
     }
 
 
@@ -1011,6 +1080,4 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         yield return new WaitForSeconds(delay);
         PhotonNetwork.LoadLevel("EndScene");
     }
-
-
 }

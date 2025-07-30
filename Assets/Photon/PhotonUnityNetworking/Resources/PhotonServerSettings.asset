@@ -54,6 +54,9 @@ MonoBehaviour:
   - RPC_InitializePublicCardPool
   - RPC_SyncPublicCardPool
   - RPC_SyncPublicCardIndex
+  - RPC_DestroyPublicCard
+  - RPC_HideWhiteCardHintText
+  - RPC_ShowWhiteCardHintText
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
