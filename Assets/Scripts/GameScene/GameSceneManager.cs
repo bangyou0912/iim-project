@@ -14,6 +14,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 {
     public static GameSceneManager Instance;
     private bool isWhiteCardExchangeInProgress = false;
+    public Dictionary<int, int> discardCounts = new Dictionary<int, int>(); // 棄牌次數
+    public HashSet<int> eliminatedPlayers = new HashSet<int>(); // 出局玩家
 
     [Header("卡牌設定")]
     public GameObject publicCardPrefab;
@@ -96,6 +98,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         foreach (var player in PhotonNetwork.PlayerList)
         {
             playerGems[player.ActorNumber] = 3;
+            discardCounts[player.ActorNumber] = 0; 
             UpdateGemUI();
         }
     }
@@ -672,10 +675,29 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             RearrangeHandCards();
         }
 
+        // 新增棄牌次數
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        discardCounts[actor]++;
+        Debug.Log($"玩家 {actor} 棄牌第 {discardCounts[actor]} 次");
 
+        // 若已達3次，標記為出局
+        if (discardCounts[actor] >= 3)
+        {
+            eliminatedPlayers.Add(actor);
+            Debug.Log($"玩家 {actor} 因為棄牌三次出局");
+
+            // 若是自己，顯示提示（可加 UI）
+            if (PhotonNetwork.LocalPlayer.ActorNumber == actor)
+            {
+                exchangeCardText.SetActive(true);
+                exchangeCardText.GetComponent<TextMeshProUGUI>().text = "您已出局！";
+                StartCoroutine(ShowExchangeCardTextSequence());
+            }
+        }
+
+        // 發新牌 + 同步
         Texture2D[] primaryColors = handCardGenerator.primaryColors;
         Texture2D randomPrimary = primaryColors[Random.Range(0, primaryColors.Length)];
-
         GameObject newCard = Instantiate(handCardGenerator.handCardPrefab, handCardGenerator.cardContainer);
         RawImage raw = newCard.GetComponent<RawImage>();
         raw.texture = randomPrimary;
@@ -691,7 +713,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         pendingDiscardCard = null;
         HideDiscardConfirmPanel();
         ResetHandCardMode();
-        DiceManager.Instance.ResetDiceUI();//重設骰子
+        DiceManager.Instance.ResetDiceUI();
+
+        DelayCheckIfAllPlayersNoHandCards();
     }
 
 
@@ -1109,18 +1133,19 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void CheckIfAllPlayersNoHandCards()
     {
-        //if (!PhotonNetwork.IsMasterClient) return;  // 僅主機檢查
-
-        foreach (var kvp in playerHands)
+        foreach (var player in PhotonNetwork.PlayerList)
         {
-            if (kvp.Value.Count > 0)
+            int actor = player.ActorNumber;
+
+            // 只要有一個人沒出局且有手牌，就繼續
+            if (!eliminatedPlayers.Contains(actor) && PlayerHasHandCard(actor))
             {
-                Debug.Log("還有手牌");
-                return; // 有人還有卡，不結束
+                Debug.Log($"玩家 {actor} 仍有手牌，繼續遊戲");
+                return;
             }
         }
 
-        Debug.Log("所有玩家手牌已用光，遊戲結束！");
+        Debug.Log("所有玩家已出局或無手牌，遊戲結束！");
         EndGame();
     }
 
