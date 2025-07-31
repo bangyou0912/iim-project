@@ -337,12 +337,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     private IEnumerator ShowExchangeCardTextSequence()
     {
-        exchangeCardText.SetActive(true);
+        exchangeCardText.SetActive(true); 
         yield return new WaitForSeconds(2f);
         exchangeCardText.GetComponent<TextMeshProUGUI>().text = " ";
         exchangeCardText.SetActive(false);
     }
-
+    [PunRPC]
+    public void RPC_ShowExchangeCancelledMessage()
+    {
+        StartCoroutine(ShowExchangeCardTextSequence());
+    }
     private IEnumerator AnimateCardSelectionCoroutine(HandCardSelect[] cards) //匡礟疭
     {
         int totalSteps = cards.Length * 2 + Random.Range(0, cards.Length);
@@ -482,7 +486,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         {
             exchangeCardText.SetActive(true);
             exchangeCardText.GetComponent<TextMeshProUGUI>().text = "ユ传计ぃì,ユ传";
-            StartCoroutine(ShowExchangeCardTextSequence());
+            photonView.RPC("RPC_ShowExchangeCancelledMessage", RpcTarget.All);
 
             Debug.Log("矗ユ计ぃì (<2)ユ传");
             isWhiteCardExchangeInProgress = false;
