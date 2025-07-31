@@ -40,6 +40,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public GameObject whiteCardHintText;
     public GameObject exchangeCardText;
+    private List<int> whiteCardIndicesToDestroyAfterTransfer = new List<int>();
 
     [Header("敵方 UI")]
     [SerializeField] private GameObject cardBackPrefab;
@@ -250,13 +251,34 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (!PhotonNetwork.IsMasterClient) return;
 
         List<int> whiteCardIndices = new List<int>();
+        whiteCardIndicesToDestroyAfterTransfer.Clear(); // 確保清空舊資料
 
         for (int i = 0; i < publicCards.Count; i++)
         {
-            if (publicCards[i].cardColorName == "白")
+            if (publicCards[i] != null && publicCards[i].cardColorName == "白")
             {
                 whiteCardIndices.Add(i);
+
+                // 當牌庫已經用完，暫存等待銷毀
+                if (publicCardIndex >= publicCardPool.Count)
+                {
+                    whiteCardIndicesToDestroyAfterTransfer.Add(i);
+                }
             }
+        }
+
+        if (whiteCardIndicesToDestroyAfterTransfer.Count > 0 && publicCardIndex >= publicCardPool.Count)
+        {
+            Debug.LogWarning("牌庫用盡，只執行白卡銷毀，不再交換");
+
+            foreach (int index in whiteCardIndicesToDestroyAfterTransfer)
+            {
+                photonView.RPC("RPC_DestroyPublicCard", RpcTarget.All, index);
+                Debug.LogWarning($"已銷毀白卡 Index {index}");
+            }
+
+            whiteCardIndicesToDestroyAfterTransfer.Clear();
+            return;
         }
 
         if (whiteCardIndices.Count > 0)
@@ -265,8 +287,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             PhotonView.Get(TurnManager.Instance)?.RPC("RPC_PauseTurnTimer", RpcTarget.All);
             isWhiteCardExchangeInProgress = true;
             photonView.RPC("RPC_ShowWhiteCardHintText", RpcTarget.All);
-            StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 5f));
-
+            StartCoroutine(TriggerTransferAndRefreshAfterDelay(whiteCardIndices, 3f));
         }
     }
     private IEnumerator TriggerTransferAndRefreshAfterDelay(List<int> indices, float delay)
@@ -290,6 +311,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             {
                 Debug.LogWarning("已無可用的公牌卡，刷新中止");
             }
+
         }
     }
 
@@ -509,11 +531,33 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         pendingTransfers.Clear();
-        isWhiteCardExchangeInProgress = false; 
-
+        isWhiteCardExchangeInProgress = false;
         if (PhotonNetwork.IsMasterClient)
-            StartCoroutine(DelayCheckWhiteCard());
-    }                                                                                    
+        {
+            if (whiteCardIndicesToDestroyAfterTransfer.Count > 0)
+            {
+                foreach (int index in whiteCardIndicesToDestroyAfterTransfer)
+                {
+                    photonView.RPC("RPC_DestroyPublicCard", RpcTarget.All, index);
+                    Debug.Log($"已銷毀牌庫用盡時的白卡：Index {index}");
+                }
+                whiteCardIndicesToDestroyAfterTransfer.Clear();
+
+                StartCoroutine(DelayCheckWhiteCardAfterDelay(1.5f));
+            }
+            else
+            {
+                StartCoroutine(DelayCheckWhiteCard());
+            }
+        }
+
+    }
+    private IEnumerator DelayCheckWhiteCardAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StartCoroutine(DelayCheckWhiteCard());
+    }
+
     [PunRPC]
     public void RPC_DestroyCardAndReceive(int fromActor, int toActor, string color)
     {
@@ -531,8 +575,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             StartCoroutine(DelayReceiveCard(color));
         }
         SyncMyHandCardsToSystem();
-    }                                                                               //白色卡功能結束
+    }
 
+                                                            //白色卡功能結束
     private HandCardSelect FindCardByColor(string color)
     {
         HandCardSelect[] handCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
@@ -708,7 +753,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             int cardIndex = publicCards.IndexOf(selectedPublicCard);
             if (cardIndex == -1) return;
 
-                if (publicCardIndex < publicCardPool.Count)
+                if (publicCardIndex < publicCardPool.Count-1)
                 {
                     int poolIndexToUse = publicCardIndex+1;
                     UpdatePublicCardIndex(poolIndexToUse);
@@ -802,11 +847,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
 
-        GameObject toDestroy = publicCards[cardIndex].gameObject;
-        publicCards.RemoveAt(cardIndex);
-        Destroy(toDestroy);
+        var card = publicCards[cardIndex];
+        if (card != null && card.gameObject != null)
+            Destroy(card.gameObject);
 
-        Debug.LogWarning($"已同步銷毀公牌 index: {cardIndex}");
+        publicCards[cardIndex] = null;
     }
 
 
