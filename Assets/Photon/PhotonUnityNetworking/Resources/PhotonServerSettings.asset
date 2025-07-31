@@ -61,6 +61,7 @@ MonoBehaviour:
   - RPC_ResumeTurnTimer
   - RPC_UpdateGem
   - RPC_ShowExchangeCancelledMessage
+  - RPC_LoadStartScene
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

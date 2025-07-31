@@ -5,8 +5,9 @@ using Photon.Pun;
 using Photon.Realtime;
 using TMPro;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
-public class EndSceneManager : MonoBehaviourPunCallbacks
+public class EndSceneManager : MonoBehaviourPun
 {
     public GameObject panelGameOver;
     public GameObject panelRanking;
@@ -36,7 +37,6 @@ public class EndSceneManager : MonoBehaviourPunCallbacks
     {
         Player[] players = PhotonNetwork.PlayerList;
 
-        // 取寶石數並排序
         List<(string name, int gem)> playerData = new List<(string, int)>();
         foreach (Player p in players)
         {
@@ -58,6 +58,20 @@ public class EndSceneManager : MonoBehaviourPunCallbacks
 
     void OnReplayClicked()
     {
-        PhotonNetwork.LoadLevel("GameScene");
+        StartCoroutine(LeaveAndReturnToStart());
+    }
+
+    IEnumerator LeaveAndReturnToStart()
+    {
+        PhotonNetwork.LeaveRoom();
+
+        // 等待成功離開房間
+        while (PhotonNetwork.InRoom)
+        {
+            yield return null;
+        }
+
+        // 進入 StartScene
+        SceneManager.LoadScene("StartScene");
     }
 }
