@@ -1121,7 +1121,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void DelayCheckIfAllPlayersNoHandCards(float delay = 1.5f)
     {
-        if (PhotonNetwork.IsMasterClient)
+        //if (PhotonNetwork.IsMasterClient)
             StartCoroutine(DelayCheckCoroutine(delay));
     }
 
