@@ -106,6 +106,7 @@ public class DiceManager : MonoBehaviour
         r = diceRoller.resultIndex;
         resultDiceContainer.GetComponent<Image>().gameObject.SetActive(true);
         resultText.SetActive(true);
+
         GameObject resultDice = Instantiate(resultDicePrefab, resultDiceContainer);
 
         Sprite resultSprite = diceRoller.isPrimary
@@ -113,9 +114,19 @@ public class DiceManager : MonoBehaviour
             : secondaryResultSprites[r];
 
         resultDice.GetComponent<Image>().sprite = resultSprite;
-        mainDiceButton.SetActive(true);
+
+        if (GameSceneManager.Instance != null && GameSceneManager.Instance.CanStillRollDice())
+        {
+            mainDiceButton.SetActive(true);
+        }
+        else
+        {
+            mainDiceButton.SetActive(false);
+        }
+
         PhotonView.Get(TurnManager.Instance)?.RPC("RPC_ResumeTurnTimer", RpcTarget.All);
     }
+
     public void ResetDiceUI()
     {
         
@@ -141,4 +152,15 @@ public class DiceManager : MonoBehaviour
             }
         }
     }
+    public void HideDiceButtons()
+    {
+        mainDiceButton.SetActive(false);
+        diceChoicePanel.SetActive(false);
+        checkToRoll.SetActive(false);
+        rejectToRoll.SetActive(false);
+        checkToPrimaryDicePanel.SetActive(false);
+        checkToSndDicePanel.SetActive(false);
+
+    }
+
 }

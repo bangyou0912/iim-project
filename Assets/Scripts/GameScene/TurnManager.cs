@@ -101,7 +101,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
         if (isMyTurn)
         {
-            // 如果我沒有手牌，立即結束回合
+            // 在自己回合開始時重置寶石花費與自選色狀態
+            if (GameSceneManager.Instance != null)
+            {
+                GameSceneManager.Instance.ResetGemSpent();
+            }
+
+            // 若沒手牌則立即跳過
             if (GameSceneManager.Instance != null &&
                 !GameSceneManager.Instance.PlayerHasHandCard(actorNumber))
             {
@@ -121,7 +127,6 @@ public class TurnManager : MonoBehaviourPunCallbacks
             turnTimerText.gameObject.SetActive(false);
         }
     }
-
     [PunRPC]
     public void RPC_PauseTurnTimer()
     {

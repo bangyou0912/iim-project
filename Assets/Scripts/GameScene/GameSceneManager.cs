@@ -16,6 +16,13 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private bool isWhiteCardExchangeInProgress = false;
     public Dictionary<int, int> discardCounts = new Dictionary<int, int>(); // 棄牌次數
     public HashSet<int> eliminatedPlayers = new HashSet<int>(); // 出局玩家
+    private int gemSpentTotal = 0; //使用的寶石數
+    private bool hasOpenedChooseColorPanel = false;
+    public GameObject chooseColorPanel;
+    public Button chooseMagentaButton;
+    public Button chooseYellowButton;
+    public Button chooseCyanButton;
+
 
     [Header("卡牌設定")]
     public GameObject publicCardPrefab;
@@ -111,12 +118,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string[] tertiaryColorNames = { "紫", "橙", "青藍", "黃綠", "朱紅", "藍綠" };
 
         foreach (var name in secondaryColorNames)
-            AddToPoolByName(name,1);
+            AddToPoolByName(name,2);
         foreach (var name in tertiaryColorNames)
-            AddToPoolByName(name,1);
+            AddToPoolByName(name,2);
 
-        AddToPoolByName("白",8);
-        AddToPoolByName("黑",8);
+        AddToPoolByName("白",4);
+        AddToPoolByName("黑",4);
         
 
         // 洗牌
@@ -807,6 +814,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             selectedHandColors.Clear();
             selectedDiceColors.Clear();
             selectedPublicCard = null;
+            
+            //關閉自選顏色面板
+            if (usedDice.Exists(color => resultDice.currentlySelectedManual != null &&
+                                          resultDice.currentlySelectedManual.cardColorName == color))
+            {
+                // 取消選取狀態
+                resultDice.currentlySelectedManual.SetSelected(false);
+                resultDice.currentlySelectedManual = null;
+                ResetGemSpent();
+            }
 
             DiceManager.Instance.ResetDiceUI();
 
@@ -1065,9 +1082,46 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         playerGems[actor] -= cost;
+        gemSpentTotal += cost;
+
         UpdateGemUI(); // 顯示更新
         photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
+
+        if (!hasOpenedChooseColorPanel && gemSpentTotal >= 3)
+        {
+            hasOpenedChooseColorPanel = true;
+            ShowChooseColorPanel(); //自選三原色
+            HideDiceButtons();
+        }
         return true;
+    }
+    void ShowChooseColorPanel()
+    {
+        chooseColorPanel.SetActive(true);
+    }
+    public void HideDiceButtons()
+    {
+        if (DiceManager.Instance != null)
+            DiceManager.Instance.HideDiceButtons();
+    }
+    public bool CanStillRollDice()
+    {
+        return gemSpentTotal < 3;
+    }
+
+    public void ResetGemSpent()
+    {
+        gemSpentTotal = 0;
+        hasOpenedChooseColorPanel = false;
+
+        if (chooseColorPanel != null)
+            chooseColorPanel.SetActive(false);
+        resultDice.currentlySelectedManual = null;
+        if (DiceManager.Instance != null)
+        {
+            DiceManager.Instance.mainDiceButton.SetActive(true); 
+            DiceManager.Instance.diceChoicePanel.SetActive(false);
+        }
     }
 
     public void UpdateGemUI()
