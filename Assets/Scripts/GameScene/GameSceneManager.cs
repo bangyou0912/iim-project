@@ -32,6 +32,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public HandCardGenerator handCardGenerator;
     private List<Texture2D> publicCardPool = new List<Texture2D>();
     private int publicCardIndex = 0;  // 控制從 publicCardPool 取第幾張
+    public Texture2D blackCardTexture; // 黑色卡
+
 
     [Header("互動視窗")]
     public GameObject confirmPanel;
@@ -118,7 +120,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string[] tertiaryColorNames = { "紫", "橙", "青藍", "黃綠", "朱紅", "藍綠" };
 
         foreach (var name in secondaryColorNames)
-            AddToPoolByName(name,2);
+            AddToPoolByName(name,3);
         foreach (var name in tertiaryColorNames)
             AddToPoolByName(name,2);
 
@@ -721,7 +723,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         HideDiscardConfirmPanel();
         ResetHandCardMode();
         DiceManager.Instance.ResetDiceUI();
-
+        ResetGemSpent();
         DelayCheckIfAllPlayersNoHandCards();
     }
 
@@ -821,7 +823,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             {
                 // 取消選取狀態
                 resultDice.currentlySelectedManual.SetSelected(false);
-                resultDice.currentlySelectedManual = null;
                 ResetGemSpent();
             }
 
@@ -884,10 +885,22 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     }
 
     [PunRPC]
-    public void RPC_DestroyPublicCard(int cardIndex)//牌庫用完時若調色成功就銷毀公牌
+    public void RPC_DestroyPublicCard(int cardIndex)
     {
         if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
 
+        if (cardIndex+1 >= publicCardPool.Count)
+        {
+            Debug.Log("牌庫已用完，改為顯示黑色卡");
+
+            // 顯示黑色卡代替
+            Texture2D blackTex = blackCardTexture;
+
+            if (publicCards[cardIndex] != null)
+                publicCards[cardIndex].SetCard(blackTex);
+
+            return;
+        }
         var card = publicCards[cardIndex];
         if (card != null && card.gameObject != null)
             Destroy(card.gameObject);
