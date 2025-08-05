@@ -12,7 +12,7 @@ using System.Drawing;
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
     public static GameSceneManager Instance;
-    private bool isWhiteCardExchangeInProgress = false;
+    public bool isWhiteCardExchangeInProgress = false;
     public Dictionary<int, int> discardCounts = new Dictionary<int, int>(); // 棄牌次數
     public HashSet<int> eliminatedPlayers = new HashSet<int>(); // 出局玩家
     private int gemSpentTotal = 0; //使用的寶石數

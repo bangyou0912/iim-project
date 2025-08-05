@@ -8,7 +8,7 @@ using TMPro;
 public class TurnManager : MonoBehaviourPunCallbacks
 {
     public static TurnManager Instance;
-
+    private bool hasShownFirstTurnNotice = false;
     public Button endTurnButton;
     public TMP_Text turnTimerText;
 
@@ -43,11 +43,6 @@ public class TurnManager : MonoBehaviourPunCallbacks
         endTurnButton.onClick.AddListener(OnEndTurnButtonClicked);
         endTurnButton.gameObject.SetActive(false);
         turnTimerText.gameObject.SetActive(false);
-
-        if (PhotonNetwork.IsMasterClient)
-        {
-            StartGame();
-        }
     }
 
     public void StartGame()
@@ -106,10 +101,6 @@ public class TurnManager : MonoBehaviourPunCallbacks
         Debug.Log(isMyTurn ? "輪到我動作" : $"等待玩家 {actorNumber}");
 
         if (turnCountdown != null) StopCoroutine(turnCountdown);
-
-        // 顯示提示圖
-        StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
-
         if (isMyTurn)
         {
             // 在自己回合開始時重置寶石花費與自選色狀態
@@ -140,6 +131,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 turnTimerText.gameObject.SetActive(false);
             }
         }
+        // 顯示提示圖
+        StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
     }
     [PunRPC]
     public void RPC_PauseTurnTimer()
@@ -232,9 +225,24 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
     IEnumerator ShowTurnNoticeWithDelay(int actorNumber)
     {
-        yield return new WaitForSeconds(2f);
+        // 第一次才等待
+        if (!hasShownFirstTurnNotice)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                if (GameSceneManager.Instance == null || !GameSceneManager.Instance.isWhiteCardExchangeInProgress)
+                {
+                    Debug.Log("等待白卡交換完成...");
+                }
+                yield return new WaitForSeconds(2f);
+            }
 
-        ShowTurnNotice(actorNumber); 
+            hasShownFirstTurnNotice = true;
+        }
+
+        yield return new WaitForSeconds(2f);  // 原本就有的延遲
+
+        ShowTurnNotice(actorNumber);
     }
 
     IEnumerator HideTurnNoticeAfterDelay(float delay)
