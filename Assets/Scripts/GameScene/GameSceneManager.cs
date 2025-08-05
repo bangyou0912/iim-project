@@ -8,7 +8,6 @@ using static HandCardSelect;
 using TMPro;
 using Photon.Pun.Demo.PunBasics;
 using System.Drawing;
-//using static System.Net.Mime.MediaTypeNames;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
@@ -725,6 +724,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         DiceManager.Instance.ResetDiceUI();
         ResetGemSpent();
         DelayCheckIfAllPlayersNoHandCards();
+        TurnManager.Instance.CompleteMyTurn();
     }
 
 
@@ -843,11 +843,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             // 寶石獎勵邏輯
             if (usedHand.Count > 0 && usedDice.Count == 0)
-                gemReward = 3;
+                gemReward = 5;
             else if (usedHand.Count > 0 && usedDice.Count > 0)
-                gemReward = 2;
+                gemReward = 4;
             else if (usedHand.Count == 0 && usedDice.Count > 0)
-                gemReward = 1;
+                gemReward = 3;
 
             int actor = PhotonNetwork.LocalPlayer.ActorNumber;
             playerGems[actor] += gemReward;
@@ -856,6 +856,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
             ShowGemRewardPanel(gemReward);
             DelayCheckIfAllPlayersNoHandCards();
+            TurnManager.Instance.CompleteMyTurn();
         }
         else
         {
@@ -1162,9 +1163,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         switch (rewardAmount)
         {
-            case 1: panelToShow = gemRewardPanel_1; break;
-            case 2: panelToShow = gemRewardPanel_2; break;
-            case 3: panelToShow = gemRewardPanel_3; break;
+            case 3: panelToShow = gemRewardPanel_1; break;
+            case 4: panelToShow = gemRewardPanel_2; break;
+            case 5: panelToShow = gemRewardPanel_3; break;
         }
 
         if (panelToShow != null)
@@ -1213,7 +1214,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         Debug.Log("所有玩家已出局或無手牌，遊戲結束！");
-        EndGame();
+
+        if (PhotonNetwork.IsMasterClient)
+        {
+            EndGame();
+        }
+        else
+        {
+            photonView.RPC("RPC_RequestEndGame", RpcTarget.MasterClient);
+        }
     }
 
     // 2. 結算寶石與切換場景
@@ -1229,6 +1238,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         StartCoroutine(LoadEndSceneWithDelay(1f));
+    }
+
+    [PunRPC]
+    public void RPC_RequestEndGame()
+    {
+        if (PhotonNetwork.IsMasterClient)
+        {
+            Debug.Log("[RPC] 接收到結束遊戲請求，MasterClient 執行 EndGame");
+            EndGame();
+        }
     }
 
     IEnumerator LoadEndSceneWithDelay(float delay)

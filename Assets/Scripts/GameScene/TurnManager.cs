@@ -12,6 +12,9 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public Button endTurnButton;
     public TMP_Text turnTimerText;
 
+    [Header("可選機制")]
+    public bool enableTurnTimer = false;  // 預設不使用倒數計時
+
     [Header("回合時間設定")]
     [Tooltip("每回合持續時間（秒）")]
     public float turnDuration = 10f; 
@@ -22,6 +25,11 @@ public class TurnManager : MonoBehaviourPunCallbacks
     private int currentPlayerIndex = -1;
     public bool isPaused = false;
     private Coroutine turnCountdown;
+
+    [Header("回合提示面板")]
+    public GameObject turnNoticeYouPanel;
+    public GameObject turnNoticeOtherPanel;
+    public TMP_Text otherPlayerNameText;
 
     public static bool IsMyTurn => Instance != null && Instance.currentTurnActor == PhotonNetwork.LocalPlayer.ActorNumber;
 
@@ -99,6 +107,9 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
         if (turnCountdown != null) StopCoroutine(turnCountdown);
 
+        // 顯示提示圖
+        StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
+
         if (isMyTurn)
         {
             // 在自己回合開始時重置寶石花費與自選色狀態
@@ -116,15 +127,18 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 return;
             }
 
-            timeRemaining = turnDuration;
-            endTurnButton.gameObject.SetActive(true);
-            turnTimerText.gameObject.SetActive(true);
-            turnCountdown = StartCoroutine(CountdownTimer());
-        }
-        else
-        {
-            endTurnButton.gameObject.SetActive(false);
-            turnTimerText.gameObject.SetActive(false);
+            if (enableTurnTimer)
+            {
+                timeRemaining = turnDuration;
+                endTurnButton.gameObject.SetActive(true);
+                turnTimerText.gameObject.SetActive(true);
+                turnCountdown = StartCoroutine(CountdownTimer());
+            }
+            else
+            {
+                endTurnButton.gameObject.SetActive(false);
+                turnTimerText.gameObject.SetActive(false);
+            }
         }
     }
     [PunRPC]
@@ -164,7 +178,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
         CompleteMyTurn();
     }
 
-    void CompleteMyTurn()
+    public void CompleteMyTurn()
     {
         if (turnCountdown != null) StopCoroutine(turnCountdown);
         endTurnButton.gameObject.SetActive(false);
@@ -187,5 +201,46 @@ public class TurnManager : MonoBehaviourPunCallbacks
         {
             StartNextTurn();
         }
+    }
+
+    void ShowTurnNotice(int actorNumber)
+    {
+        if (turnNoticeYouPanel != null) turnNoticeYouPanel.SetActive(false);
+        if (turnNoticeOtherPanel != null) turnNoticeOtherPanel.SetActive(false);
+
+        if (PhotonNetwork.LocalPlayer.ActorNumber == actorNumber)
+        {
+            // 自己的回合 → 顯示「輪到你了」圖
+            if (turnNoticeYouPanel != null)
+                turnNoticeYouPanel.SetActive(true);
+        }
+        else
+        {
+            // 別人的回合 → 顯示「輪到 XX」
+            var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+            string nickname = player != null ? player.NickName : $"{actorNumber}";
+
+            if (otherPlayerNameText != null)
+                otherPlayerNameText.text = $"{nickname}";
+
+            if (turnNoticeOtherPanel != null)
+                turnNoticeOtherPanel.SetActive(true);
+        }
+
+        StartCoroutine(HideTurnNoticeAfterDelay(2f));
+    }
+
+    IEnumerator ShowTurnNoticeWithDelay(int actorNumber)
+    {
+        yield return new WaitForSeconds(2f);
+
+        ShowTurnNotice(actorNumber); 
+    }
+
+    IEnumerator HideTurnNoticeAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (turnNoticeYouPanel != null) turnNoticeYouPanel.SetActive(false);
+        if (turnNoticeOtherPanel != null) turnNoticeOtherPanel.SetActive(false);
     }
 }
