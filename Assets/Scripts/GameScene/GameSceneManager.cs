@@ -1057,22 +1057,22 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         float cardWidth = cards[0].GetComponent<RectTransform>().sizeDelta.x;
         float containerWidth = handCardGenerator.cardContainer.rect.width;
 
-        float maxSpacing = cardWidth + 20f;  // 正常間距
+        float maxSpacing = cardWidth;  // 正常間距
         float spacing = maxSpacing;
 
         // 如果卡牌總寬超過容器，壓縮 spacing
         float totalWidth = (count - 1) * spacing;
         if (totalWidth > containerWidth)
         {
-            spacing = (containerWidth - 10f) / (count - 1); // 10f 是左右邊距
+            spacing = (containerWidth - 10f) / (count - 1);
         }
 
-        float startX = -containerWidth / 2f + cardWidth / 2f; // 從最左邊開始（置中錨點）
+        float startX = -containerWidth / 2f + cardWidth / 2f - 40f;
 
         for (int i = 0; i < count; i++)
         {
             float x = startX + i * spacing;
-            float y = 0f;
+            float y = -80f;
 
             RectTransform rt = cards[i].GetComponent<RectTransform>();
             rt.anchoredPosition = new Vector2(x, y);
