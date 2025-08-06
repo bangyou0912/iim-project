@@ -1260,4 +1260,43 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         return playerHands.ContainsKey(actorNumber) && playerHands[actorNumber].Count > 0;
     }
+
+    public override void OnDisconnected(DisconnectCause cause)
+    {
+        Debug.LogWarning("已斷線，原因: " + cause);
+
+        switch (cause)
+        {
+            case DisconnectCause.ExceptionOnConnect:
+            case DisconnectCause.Exception:
+            case DisconnectCause.DisconnectByServerLogic:
+            case DisconnectCause.ClientTimeout:
+            case DisconnectCause.ServerTimeout:
+                Debug.Log("試圖自動重連並重新進入房間...");
+                PhotonNetwork.ReconnectAndRejoin();  // 嘗試回到原本房間
+                break;
+
+            default:
+                Debug.LogWarning("不支援自動重連的斷線原因: " + cause);
+                break;
+        }
+    }
+
+    public override void OnConnectedToMaster()
+    {
+        Debug.Log("已重新連線到 Master Server");
+        // 可以顯示 UI 提示：等待房間回復中
+    }
+
+    public override void OnJoinRoomFailed(short returnCode, string message)
+    {
+        Debug.LogError($"重新進入房間失敗：{message} (Code {returnCode})");
+        // 可以導回主選單，或重新選擇房間
+    }
+
+    public override void OnJoinedRoom()
+    {
+        Debug.Log("成功重新加入房間！");
+        // 可依需求恢復場景狀態
+    }
 }
