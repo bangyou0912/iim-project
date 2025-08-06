@@ -48,8 +48,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public Button discardYesButton;
     public Button discardNoButton;
 
-    public GameObject whiteCardHintText;
-    public GameObject exchangeCardText;
+    public GameObject whiteCardHintTextPanel;
+    public GameObject exchangeCardTextPanel;
     private List<int> whiteCardIndicesToDestroyAfterTransfer = new List<int>();
 
     [Header("寄よ UI")]
@@ -304,7 +304,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private IEnumerator TriggerTransferAndRefreshAfterDelay(List<int> indices, float delay)
     {
         yield return new WaitForSeconds(delay);
-        whiteCardHintText.SetActive(false);
+        whiteCardHintTextPanel.SetActive(false);
         photonView.RPC("RPC_HideWhiteCardHintText", RpcTarget.All);
         photonView.RPC("RPC_TriggerCardTransfer", RpcTarget.All);
 
@@ -347,8 +347,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (myHandCards.Length == 0)
         {
             Debug.LogWarning($"產 {PhotonNetwork.LocalPlayer.ActorNumber} ⊿Τ矗ユ铬筁");
-            exchangeCardText.SetActive(true);
-            exchangeCardText.GetComponent<TextMeshProUGUI>().text = "铬筁セΩユ传";
+            exchangeCardTextPanel.SetActive(true);
+            exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "铬筁セΩユ传";
             StartCoroutine(ShowExchangeCardTextSequence());
             photonView.RPC("RPC_SkipTransfer", RpcTarget.MasterClient, PhotonNetwork.LocalPlayer.ActorNumber);
             yield break;
@@ -359,21 +359,21 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     [PunRPC]
     public void RPC_ShowWhiteCardHintText()
     {
-        whiteCardHintText.SetActive(true);
+        whiteCardHintTextPanel.SetActive(true);
     }
 
     [PunRPC]
     public void RPC_HideWhiteCardHintText()
     {
-        whiteCardHintText.SetActive(false);
+        whiteCardHintTextPanel.SetActive(false);
     }
 
     private IEnumerator ShowExchangeCardTextSequence()
     {
-        exchangeCardText.SetActive(true); 
+        exchangeCardTextPanel.SetActive(true); 
         yield return new WaitForSeconds(2f);
-        exchangeCardText.GetComponent<TextMeshProUGUI>().text = " ";
-        exchangeCardText.SetActive(false);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = " ";
+        exchangeCardTextPanel.SetActive(false);
     }
     [PunRPC]
     public void RPC_ShowExchangeCancelledMessage()
@@ -414,8 +414,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             chosen.SetHighlight(false);
             string color = chosen.cardColorName;
             int actor = PhotonNetwork.LocalPlayer.ActorNumber;
-            exchangeCardText.SetActive(true);
-            exchangeCardText.GetComponent<TextMeshProUGUI>().text = $"眤盢ユ传も礟琌{color}";
+            exchangeCardTextPanel.SetActive(true);
+            exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"眤盢ユ传も礟琌{color}";
             StartCoroutine(ShowExchangeCardTextSequence());
 
             StartCoroutine(DelayRearrange());            
@@ -477,8 +477,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         hcs.cardColorName = tex.name;
         hcs.SetMode(HandCardMode.Normal);
         hcs.InitPosition();
-        exchangeCardText.SetActive(true);
-        exchangeCardText.GetComponent<TextMeshProUGUI>().text = $"Μも礟{colorName}";
+        exchangeCardTextPanel.SetActive(true);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"Μも礟{colorName}";
         StartCoroutine(ShowExchangeCardTextSequence());
         Debug.Log($"產 {PhotonNetwork.LocalPlayer.ActorNumber} Θ钡Μ{colorName}");
 
@@ -517,8 +517,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         if (activeActors.Count < 2)
         {
-            exchangeCardText.SetActive(true);
-            exchangeCardText.GetComponent<TextMeshProUGUI>().text = "ユ传计ぃì,ユ传";
+            exchangeCardTextPanel.SetActive(true);
+            exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "ユ传计ぃì,ユ传";
             photonView.RPC("RPC_ShowExchangeCancelledMessage", RpcTarget.All);
 
             Debug.Log("矗ユ计ぃì (<2)ユ传");
@@ -697,8 +697,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             // 璝琌陪ボ矗ボ UI
             if (PhotonNetwork.LocalPlayer.ActorNumber == actor)
             {
-                exchangeCardText.SetActive(true);
-                exchangeCardText.GetComponent<TextMeshProUGUI>().text = "眤Ы";
+                exchangeCardTextPanel.SetActive(true);
+                exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "眤Ы";
                 StartCoroutine(ShowExchangeCardTextSequence());
             }
         }
@@ -823,9 +823,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             {
                 // 匡篈
                 resultDice.currentlySelectedManual.SetSelected(false);
-                ResetGemSpent();
             }
-
+            ResetGemSpent();
             DiceManager.Instance.ResetDiceUI();
 
             // 綪反礟
@@ -1104,8 +1103,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (!hasOpenedChooseColorPanel && gemSpentTotal >= 3)
         {
             hasOpenedChooseColorPanel = true;
-            ShowChooseColorPanel(); //匡︹
             HideDiceButtons();
+            ShowChooseColorPanel(); //匡︹
+            
         }
         return true;
     }
@@ -1115,8 +1115,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     }
     public void HideDiceButtons()
     {
-        if (DiceManager.Instance != null)
-            DiceManager.Instance.HideDiceButtons();
+        //if (DiceManager.Instance != null)
+       DiceManager.Instance.HideDiceButtons();
     }
     public bool CanStillRollDice()
     {
@@ -1128,8 +1128,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         gemSpentTotal = 0;
         hasOpenedChooseColorPanel = false;
 
-        if (chooseColorPanel != null)
-            chooseColorPanel.SetActive(false);
+        //if (chooseColorPanel != null)
+        chooseColorPanel.SetActive(false);
         resultDice.currentlySelectedManual = null;
         if (DiceManager.Instance != null)
         {

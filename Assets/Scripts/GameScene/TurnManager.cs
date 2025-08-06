@@ -30,6 +30,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public GameObject turnNoticeYouPanel;
     public GameObject turnNoticeOtherPanel;
     public TMP_Text otherPlayerNameText;
+    private Coroutine noticeCoroutine; 
+
 
     public static bool IsMyTurn => Instance != null && Instance.currentTurnActor == PhotonNetwork.LocalPlayer.ActorNumber;
 
@@ -101,6 +103,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
         Debug.Log(isMyTurn ? "輪到我動作" : $"等待玩家 {actorNumber}");
 
         if (turnCountdown != null) StopCoroutine(turnCountdown);
+        //停止前一輪提示圖協程，避免多個同時顯示
+        if (noticeCoroutine != null) StopCoroutine(noticeCoroutine);
         if (isMyTurn)
         {
             // 在自己回合開始時重置寶石花費與自選色狀態
@@ -132,7 +136,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
             }
         }
         // 顯示提示圖
-        StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
+        noticeCoroutine = StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
     }
     [PunRPC]
     public void RPC_PauseTurnTimer()
@@ -241,8 +245,11 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
 
         yield return new WaitForSeconds(2f);  // 原本就有的延遲
-
-        ShowTurnNotice(actorNumber);
+        //確保當前回合還是這個人再顯示提示圖
+        if (currentTurnActor == actorNumber)
+        {
+            ShowTurnNotice(actorNumber);
+        }
     }
 
     IEnumerator HideTurnNoticeAfterDelay(float delay)
