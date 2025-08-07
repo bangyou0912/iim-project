@@ -22,6 +22,13 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public Button chooseYellowButton;
     public Button chooseCyanButton;
 
+    [Header("可選功能設定")]
+    public bool enableRealtimeTips = false;
+
+    [Header("提示文字 UI")]
+    public GameObject TipPanel;
+    public TMP_Text hoverTipText;
+
 
     [Header("卡牌設定")]
     public GameObject publicCardPrefab;
@@ -994,6 +1001,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         { "黑", new List<List<string>> { new List<string>{ "洋紅", "青", "黃" }, new List<string>{ "紅", "青" }, new List<string> { "黃", "藍" }, new List<string> { "洋紅", "綠" }, new List<string> { "紅", "藍" }, new List<string> { "紅", "綠" }, new List<string> { "藍", "綠" } } },
     };
 
+    public string GetMixingTip(string colorName)
+    { 
+        List<List<string>> recipes = colorMixingRules[colorName];
+        var mainRecipe = recipes[0];
+        string formatted = string.Join(" + ", mainRecipe);
+        return $"調色原則:\t{formatted}";
+    }
+
     public bool CanHarmonize(string targetColor, List<string> handCards, List<string> diceColors, out List<string> usedFromHand, out List<string> usedFromDice)
     {
         usedFromHand = new List<string>();
@@ -1298,5 +1313,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("成功重新加入房間！");
         // 可依需求恢復場景狀態
+    }
+
+    public void SetRealtimeTipsEnabled(bool isOn)
+    {
+        enableRealtimeTips = isOn;
+        if (!isOn && TipPanel != null)
+            TipPanel.SetActive(false);
     }
 }

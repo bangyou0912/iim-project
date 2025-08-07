@@ -30,7 +30,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
     public GameObject turnNoticeYouPanel;
     public GameObject turnNoticeOtherPanel;
     public TMP_Text otherPlayerNameText;
-    private Coroutine noticeCoroutine; 
+    private Coroutine noticeCoroutine;
+    public TMP_Text currentTurnPlayerNameText;
 
 
     public static bool IsMyTurn => Instance != null && Instance.currentTurnActor == PhotonNetwork.LocalPlayer.ActorNumber;
@@ -137,6 +138,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
         // 顯示提示圖
         noticeCoroutine = StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
+
+        if (currentTurnPlayerNameText != null)
+        {
+            var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+            string nickname = player != null ? player.NickName : $"{actorNumber}";
+            currentTurnPlayerNameText.text = $"{nickname}";
+        }
     }
     [PunRPC]
     public void RPC_PauseTurnTimer()
