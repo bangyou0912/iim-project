@@ -6,8 +6,6 @@ using Photon.Pun;
 using Photon.Realtime;
 using static HandCardSelect;
 using TMPro;
-using Photon.Pun.Demo.PunBasics;
-using System.Drawing;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
@@ -109,7 +107,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     /*
     -------------------------------------------------------------------------------------------------------------------------------------
-                                                   Unity 生命週期
+                                                    Unity 生命週期
     -------------------------------------------------------------------------------------------------------------------------------------
     */
     private void Awake()
