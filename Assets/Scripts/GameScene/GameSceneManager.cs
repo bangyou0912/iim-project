@@ -935,6 +935,97 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         return false;
     }
 
+    public void HighlightMatchHandCards(string targetColor)
+    {
+        // 取得所有手牌資訊
+        HandCardSelect[] handCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
+        List<string> handColors = new List<string>();
+        Dictionary<string, List<HandCardSelect>> colorToHandCards = new Dictionary<string, List<HandCardSelect>>();
+        foreach (var card in handCards)
+        {
+            handColors.Add(card.cardColorName);
+            if (!colorToHandCards.ContainsKey(card.cardColorName))
+                colorToHandCards[card.cardColorName] = new List<HandCardSelect>();
+            colorToHandCards[card.cardColorName].Add(card);
+        }
+
+        // 取得所有骰子結果資訊
+        resultDice[] resultDiceCards = DiceManager.Instance.resultDiceContainer.GetComponentsInChildren<resultDice>();
+        List<string> diceColors = new List<string>();
+        Dictionary<string, List<resultDice>> colorToDiceCards = new Dictionary<string, List<resultDice>>();
+        foreach (var dice in resultDiceCards)
+        {
+            diceColors.Add(dice.cardColorName);
+            if (!colorToDiceCards.ContainsKey(dice.cardColorName))
+                colorToDiceCards[dice.cardColorName] = new List<resultDice>();
+            colorToDiceCards[dice.cardColorName].Add(dice);
+        }
+
+        // 遍歷所有 recipe，找出第一組可用的合成配方
+        foreach (var recipe in colorMixingRules[targetColor])
+        {
+            List<string> tempHand = new List<string>(handColors);
+            List<string> tempDice = new List<string>(diceColors);
+            List<HandCardSelect> matchedHand = new List<HandCardSelect>();
+            List<resultDice> matchedDice = new List<resultDice>();
+            bool matched = true;
+
+            foreach (var color in recipe)
+            {
+                if (tempHand.Contains(color) && colorToHandCards.ContainsKey(color))
+                {
+                    var handCard = colorToHandCards[color].Find(c => !matchedHand.Contains(c));
+                    if (handCard != null)
+                    {
+                        matchedHand.Add(handCard);
+                        tempHand.Remove(color);
+                        continue;
+                    }
+                }
+
+                if (tempDice.Contains(color) && colorToDiceCards.ContainsKey(color))
+                {
+                    var diceCard = colorToDiceCards[color].Find(d => !matchedDice.Contains(d));
+                    if (diceCard != null)
+                    {
+                        matchedDice.Add(diceCard);
+                        tempDice.Remove(color);
+                        continue;
+                    }
+                }
+
+                matched = false;
+                break;
+            }
+
+            if (matched)
+            {
+                foreach (var h in matchedHand)
+                    h.SetHoverVisual(true);
+                foreach (var d in matchedDice)
+                    d.SetHoverVisual(true);
+                return; // 只處理第一個可行配方
+            }
+        }
+    }
+
+    public void ClearAllHandCardHover()
+    {
+        HandCardSelect[] handCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
+        foreach (var card in handCards)
+        {
+            if (!card.isCardSelected)
+                card.SetHoverVisual(false);
+        }
+
+        resultDice[] diceCards = DiceManager.Instance.resultDiceContainer.GetComponentsInChildren<resultDice>();
+        foreach (var dice in diceCards)
+        {
+            if (!dice.isCardSelected)
+                dice.SetHoverVisual(false);
+        }
+    }
+
     /*
     -------------------------------------------------------------------------------------------------------------------------------------
                                                     棄牌與懲罰
@@ -1321,8 +1412,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             { "finalGem", gem }
         });
         }
-
         StartCoroutine(LoadEndSceneWithDelay(1f));
+        AudioManager.Instance.StopBGM();
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.clearSound);
     }
 
     [PunRPC]

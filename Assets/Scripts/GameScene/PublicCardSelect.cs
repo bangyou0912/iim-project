@@ -74,6 +74,7 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
             GameSceneManager.Instance.hoverTipText.text = tip;
             GameSceneManager.Instance.TipPanel.gameObject.SetActive(true);
             GameSceneManager.Instance.hoverTipText.gameObject.SetActive(true);
+            GameSceneManager.Instance.HighlightMatchHandCards(cardColorName);
         }
     }
 
@@ -91,6 +92,7 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
         {
             GameSceneManager.Instance.TipPanel.gameObject.SetActive(false);
             GameSceneManager.Instance.hoverTipText.gameObject.SetActive(false);
+            GameSceneManager.Instance.ClearAllHandCardHover();
         }
     }
 

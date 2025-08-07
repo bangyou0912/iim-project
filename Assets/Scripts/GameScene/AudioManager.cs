@@ -3,16 +3,19 @@ using UnityEngine;
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance;
-    public AudioSource bgmSource;        // 背景音樂的 AudioSource
-    public AudioClip bgmClip;            // 要播放的背景音樂
+
+    public AudioSource bgmSource;
+    public AudioClip bgmClip;
+
+    public AudioSource sfxSource;  // 撥放一次性音效
+    public AudioClip clearSound;   // 過關音效
 
     void Awake()
     {
-        // 確保只有一個 AudioManager 存在
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject); // 切場景不會消失
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -20,14 +23,20 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        // 如果沒設定 AudioSource，自動新增一個
         if (bgmSource == null)
         {
             bgmSource = gameObject.AddComponent<AudioSource>();
             bgmSource.loop = true;
         }
 
-        PlayBGM(); // 開始播放
+        if (sfxSource == null)
+        {
+            sfxSource = gameObject.AddComponent<AudioSource>();
+            sfxSource.loop = false;
+            sfxSource.playOnAwake = false;
+        }
+
+        PlayBGM();
     }
 
     public void PlayBGM()
@@ -42,5 +51,13 @@ public class AudioManager : MonoBehaviour
     public void StopBGM()
     {
         bgmSource.Stop();
+    }
+
+    public void PlaySFX(AudioClip clip)
+    {
+        if (clip != null)
+        {
+            sfxSource.PlayOneShot(clip);
+        }
     }
 }

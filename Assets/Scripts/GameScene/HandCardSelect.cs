@@ -136,4 +136,21 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
             highlighted.gameObject.SetActive(show);
     }
 
+    public void SetHoverVisual(bool isOn)
+    {
+        if (isOn)
+        {
+            targetPos = originalPos + new Vector3(0, floatY, 0);
+            targetScale = originalScale * scaleUp;
+            targetAngle = 0f;
+        }
+        else
+        {
+            targetPos = originalPos;
+            targetScale = originalScale;
+            targetAngle = originalAngle;
+        }
+    }
+
+
 }
