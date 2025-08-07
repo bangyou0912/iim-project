@@ -937,10 +937,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void HighlightMatchHandCards(string targetColor)
     {
-        // 取得所有手牌資訊
+        // 1. 收集手牌資料
         HandCardSelect[] handCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
         List<string> handColors = new List<string>();
         Dictionary<string, List<HandCardSelect>> colorToHandCards = new Dictionary<string, List<HandCardSelect>>();
+
         foreach (var card in handCards)
         {
             handColors.Add(card.cardColorName);
@@ -949,11 +950,25 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             colorToHandCards[card.cardColorName].Add(card);
         }
 
-        // 取得所有骰子結果資訊
-        resultDice[] resultDiceCards = DiceManager.Instance.resultDiceContainer.GetComponentsInChildren<resultDice>();
+        // 2. 收集所有 resultDice（包含骰子結果與自選三原色）
+        List<resultDice> allDiceCards = new List<resultDice>();
+
+        // 加入擲骰結果區域中的骰子
+        allDiceCards.AddRange(DiceManager.Instance.resultDiceContainer.GetComponentsInChildren<resultDice>());
+
+        // 加入場上所有自選三原色（SingleManual 模式）
+        resultDice[] allManualDice = GameObject.FindObjectsByType<resultDice>(FindObjectsSortMode.None);
+        foreach (var dice in allManualDice)
+        {
+            if (dice.selectMode == resultDice.DiceSelectMode.SingleManual && !allDiceCards.Contains(dice))
+                allDiceCards.Add(dice);
+        }
+
+        // 建立骰子顏色對映
         List<string> diceColors = new List<string>();
         Dictionary<string, List<resultDice>> colorToDiceCards = new Dictionary<string, List<resultDice>>();
-        foreach (var dice in resultDiceCards)
+
+        foreach (var dice in allDiceCards)
         {
             diceColors.Add(dice.cardColorName);
             if (!colorToDiceCards.ContainsKey(dice.cardColorName))
@@ -961,7 +976,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             colorToDiceCards[dice.cardColorName].Add(dice);
         }
 
-        // 遍歷所有 recipe，找出第一組可用的合成配方
+        // 3. 嘗試找出第一組可以合成 targetColor 的配方
+        if (!colorMixingRules.ContainsKey(targetColor)) return;
+
         foreach (var recipe in colorMixingRules[targetColor])
         {
             List<string> tempHand = new List<string>(handColors);
@@ -972,42 +989,49 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             foreach (var color in recipe)
             {
+                // 先嘗試從手牌中找
                 if (tempHand.Contains(color) && colorToHandCards.ContainsKey(color))
                 {
-                    var handCard = colorToHandCards[color].Find(c => !matchedHand.Contains(c));
-                    if (handCard != null)
+                    var card = colorToHandCards[color].Find(c => !matchedHand.Contains(c));
+                    if (card != null)
                     {
-                        matchedHand.Add(handCard);
+                        matchedHand.Add(card);
                         tempHand.Remove(color);
                         continue;
                     }
                 }
 
+                // 再嘗試從骰子中找
                 if (tempDice.Contains(color) && colorToDiceCards.ContainsKey(color))
                 {
-                    var diceCard = colorToDiceCards[color].Find(d => !matchedDice.Contains(d));
-                    if (diceCard != null)
+                    var dice = colorToDiceCards[color].Find(d => !matchedDice.Contains(d));
+                    if (dice != null)
                     {
-                        matchedDice.Add(diceCard);
+                        matchedDice.Add(dice);
                         tempDice.Remove(color);
                         continue;
                     }
                 }
 
+                // 找不到這個顏色
                 matched = false;
                 break;
             }
 
             if (matched)
             {
-                foreach (var h in matchedHand)
-                    h.SetHoverVisual(true);
-                foreach (var d in matchedDice)
-                    d.SetHoverVisual(true);
-                return; // 只處理第一個可行配方
+                // 套用 hover 效果
+                foreach (var card in matchedHand)
+                    card.SetHoverVisual(true);
+
+                foreach (var dice in matchedDice)
+                    dice.SetHoverVisual(true);
+
+                return; // 成功找到一組 recipe 就結束
             }
         }
     }
+
 
     public void ClearAllHandCardHover()
     {
@@ -1018,8 +1042,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                 card.SetHoverVisual(false);
         }
 
-        resultDice[] diceCards = DiceManager.Instance.resultDiceContainer.GetComponentsInChildren<resultDice>();
-        foreach (var dice in diceCards)
+        resultDice[] allDice = GameObject.FindObjectsByType<resultDice>(FindObjectsSortMode.None);
+        foreach (var dice in allDice)
         {
             if (!dice.isCardSelected)
                 dice.SetHoverVisual(false);
