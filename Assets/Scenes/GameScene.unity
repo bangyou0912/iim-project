@@ -2090,13 +2090,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   isWhiteCardExchangeInProgress: 0
-  chooseColorPanel: {fileID: 263282484}
-  chooseMagentaButton: {fileID: 570406257}
-  chooseYellowButton: {fileID: 1483640386}
-  chooseCyanButton: {fileID: 1501933604}
-  enableRealtimeTips: 0
-  TipPanel: {fileID: 960147353}
-  hoverTipText: {fileID: 460234749}
   publicCardPrefab: {fileID: 2435916338373172616, guid: 35347fc6bcf86f34d959bb66f6f924db, type: 3}
   publiccardContainer: {fileID: 795364719}
   cards:
@@ -2111,9 +2104,13 @@ MonoBehaviour:
   - {fileID: 2800000, guid: a54860a8b2309a14c8a3348437df01dc, type: 3}
   - {fileID: 2800000, guid: 6ef238f3b8a6f4049a624bae08d89565, type: 3}
   - {fileID: 2800000, guid: 05fe1a06940fb5146bba1c754a49971d, type: 3}
+  blackCardTexture: {fileID: 2800000, guid: 05fe1a06940fb5146bba1c754a49971d, type: 3}
   yellow_retangular: {fileID: 2141098774}
   handCardGenerator: {fileID: 881922826}
-  blackCardTexture: {fileID: 2800000, guid: 05fe1a06940fb5146bba1c754a49971d, type: 3}
+  gemText: {fileID: 1820919911}
+  gemRewardPanel_1: {fileID: 1598047231}
+  gemRewardPanel_2: {fileID: 1256138367}
+  gemRewardPanel_3: {fileID: 409089440}
   confirmPanel: {fileID: 510901479}
   confirmButton: {fileID: 79381577}
   cancelButton: {fileID: 1000386994}
@@ -2129,11 +2126,14 @@ MonoBehaviour:
   enemyZone_Top: {fileID: 1876909459}
   enemyZone_Left: {fileID: 1957222577}
   enemyZone_Right: {fileID: 2110036225}
+  enableRealtimeTips: 0
+  TipPanel: {fileID: 960147353}
+  hoverTipText: {fileID: 460234749}
+  chooseColorPanel: {fileID: 263282484}
+  chooseMagentaButton: {fileID: 570406257}
+  chooseYellowButton: {fileID: 1483640386}
+  chooseCyanButton: {fileID: 1501933604}
   darkBackground: {fileID: 1243289563}
-  gemRewardPanel_1: {fileID: 1598047231}
-  gemRewardPanel_2: {fileID: 1256138367}
-  gemRewardPanel_3: {fileID: 409089440}
-  gemText: {fileID: 1820919911}
 --- !u!114 &566195435
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2625,7 +2625,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 12.53, y: -14.273}
+  m_AnchoredPosition: {x: 12.529999, y: -14.273}
   m_SizeDelta: {x: 24, y: 24}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &693469063
@@ -2928,7 +2928,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 14, y: 1.772}
+  m_AnchoredPosition: {x: 14, y: 1.7720003}
   m_SizeDelta: {x: -28, y: -3}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &822420906
@@ -4302,12 +4302,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a863cdf818482c24db070e7c8e17ec02, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  endTurnButton: {fileID: 2017006527}
-  turnTimerText: {fileID: 658371212}
-  enableTurnTimer: 0
-  turnDuration: 30
   currentTurnActor: -1
   isPaused: 0
+  enableTurnTimer: 0
+  turnDuration: 30
+  endTurnButton: {fileID: 2017006527}
+  turnTimerText: {fileID: 658371212}
   turnNoticeYouPanel: {fileID: 2139830917}
   turnNoticeOtherPanel: {fileID: 1079343606}
   otherPlayerNameText: {fileID: 295813829}

@@ -11,36 +11,60 @@ using System.Drawing;
 
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
+    // 單例 & 狀態管理
     public static GameSceneManager Instance;
     public bool isWhiteCardExchangeInProgress = false;
+    private bool hasOpenedChooseColorPanel = false;
+    private bool hasSynced = false;
+    private int gemSpentTotal = 0;
+    private Dictionary<string, List<List<string>>> colorMixingRules = new Dictionary<string, List<List<string>>>
+    {
+        { "紅", new List<List<string>> { new List<string>{ "洋紅", "黃" } } },
+        { "綠", new List<List<string>> { new List<string>{ "青", "黃" } } },
+        { "藍", new List<List<string>> { new List<string>{ "洋紅", "青" } } },
+        { "紫", new List<List<string>> { new List<string>{ "洋紅", "洋紅", "青" }, new List<string>{ "藍", "洋紅" } } },
+        { "朱紅", new List<List<string>> { new List<string>{ "洋紅", "洋紅", "黃" }, new List<string>{ "紅", "洋紅" } } },
+        { "黃綠", new List<List<string>> { new List<string>{ "青", "黃", "黃" }, new List<string>{ "綠", "黃" } } },
+        { "青藍", new List<List<string>> { new List<string>{ "青", "青", "洋紅" }, new List<string>{ "青", "藍" } } },
+        { "橙", new List<List<string>> { new List<string>{ "洋紅", "黃", "黃" }, new List<string>{ "紅", "黃" } } },
+        { "藍綠", new List<List<string>> { new List<string>{ "黃", "青", "青" }, new List<string>{ "綠", "青" } } },
+        { "黑", new List<List<string>> { new List<string>{ "洋紅", "青", "黃" }, new List<string>{ "紅", "青" }, new List<string> { "黃", "藍" }, new List<string> { "洋紅", "綠" }, new List<string> { "紅", "藍" }, new List<string> { "紅", "綠" }, new List<string> { "藍", "綠" } } },
+    };
+
+    //玩家資料
+    private Dictionary<int, int> playerGems = new Dictionary<int, int>();
     public Dictionary<int, int> discardCounts = new Dictionary<int, int>(); // 棄牌次數
     public HashSet<int> eliminatedPlayers = new HashSet<int>(); // 出局玩家
-    private int gemSpentTotal = 0; //使用的寶石數
-    private bool hasOpenedChooseColorPanel = false;
-    public GameObject chooseColorPanel;
-    public Button chooseMagentaButton;
-    public Button chooseYellowButton;
-    public Button chooseCyanButton;
+    private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
+    private Dictionary<int, string> pendingTransfers = new Dictionary<int, string>();
 
-    [Header("可選功能設定")]
-    public bool enableRealtimeTips = false;
+    //手牌與選取資料（邏輯用）
+    private List<string> selectedHandColors = new List<string>();
+    private List<HandCardSelect> selectedHandCards = new List<HandCardSelect>();
+    private List<string> selectedDiceColors = new List<string>();
+    private PublicCardSelect selectedPublicCard = null;
+    private HandCardSelect pendingDiscardCard = null;
 
-    [Header("提示文字 UI")]
-    public GameObject TipPanel;
-    public TMP_Text hoverTipText;
-
-
+    // 卡牌設定
     [Header("卡牌設定")]
     public GameObject publicCardPrefab;
     public RectTransform publiccardContainer;
     public Texture2D[] cards;
+    public Texture2D blackCardTexture; // 黑色卡
     public Image yellow_retangular;
     public HandCardGenerator handCardGenerator;
     private List<Texture2D> publicCardPool = new List<Texture2D>();
     private int publicCardIndex = 0;  // 控制從 publicCardPool 取第幾張
-    public Texture2D blackCardTexture; // 黑色卡
+    private List<PublicCardSelect> publicCards = new List<PublicCardSelect>();
 
+    // 寶石與獎勵
+    [Header("寶石獎勵面板")]
+    public TMP_Text gemText;
+    public GameObject gemRewardPanel_1;
+    public GameObject gemRewardPanel_2;
+    public GameObject gemRewardPanel_3;
 
+    // 互動視窗
     [Header("互動視窗")]
     public GameObject confirmPanel;
     public Button confirmButton;
@@ -50,7 +74,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public Button confirmfailButton;
     public Button cancelfailButton;
 
-    private HandCardSelect pendingDiscardCard = null;
     public GameObject discardConfirmPanel;
     public Button discardYesButton;
     public Button discardNoButton;
@@ -59,32 +82,36 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public GameObject exchangeCardTextPanel;
     private List<int> whiteCardIndicesToDestroyAfterTransfer = new List<int>();
 
+    // 敵方 UI
     [Header("敵方 UI")]
     [SerializeField] private GameObject cardBackPrefab;
     [SerializeField] private Transform enemyZone_Top;
     [SerializeField] private Transform enemyZone_Left;
     [SerializeField] private Transform enemyZone_Right;
 
-    private List<string> selectedHandColors = new List<string>();
-    private List<HandCardSelect> selectedHandCards = new List<HandCardSelect>();
-    private List<string> selectedDiceColors = new List<string>();
-    private List<HandCardSelect> selectedDiceCards = new List<HandCardSelect>();
-    private PublicCardSelect selectedPublicCard = null;
-    private List<PublicCardSelect> publicCards = new List<PublicCardSelect>();
+    // 即時提示（可選功能）
+    [Header("可選功能設定")]
+    public bool enableRealtimeTips = false;
 
+    [Header("提示文字 UI")]
+    public GameObject TipPanel;
+    public TMP_Text hoverTipText;
+
+    // 顏色選擇 UI
+    [Header("顏色選擇面板")]
+    public GameObject chooseColorPanel;
+    public Button chooseMagentaButton;
+    public Button chooseYellowButton;
+    public Button chooseCyanButton;
+
+    // 其他 UI 控制
     public GameObject darkBackground;
-    private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
-    private bool hasSynced = false;
 
-    private Dictionary<int, int> playerGems = new Dictionary<int, int>();
-
-    [Header("寶石獎勵面板")]
-    public GameObject gemRewardPanel_1;
-    public GameObject gemRewardPanel_2;
-    public GameObject gemRewardPanel_3;
-    public TMP_Text gemText;
-
-
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                   Unity 生命週期
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -118,6 +145,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                   公牌池初始化與生成邏輯
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
     private void InitializePublicCardPool()
     {
         publicCardPool.Clear();
@@ -145,7 +177,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         string[] cardNames = publicCardPool.ConvertAll(tex => tex.name).ToArray();
         photonView.RPC("RPC_SyncPublicCardPool", RpcTarget.Others, cardNames);
-        //Debug.Log($"主機已呼叫 RPC_SyncPublicCardPool，傳送 {cardNames.Length} 張卡。");
     }
 
     private void AddToPoolByName(string name, int count)
@@ -155,27 +186,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         for (int i = 0; i < count; i++)
             publicCardPool.Add(tex);
-    }
-
-    [PunRPC]
-    public void RPC_SyncPublicCardPool(string[] colorNames)
-    {
-        publicCardPool.Clear();
-        foreach (string name in colorNames)
-        {
-            var tex = System.Array.Find(cards, t => t.name == name);
-            if (tex != null)
-                publicCardPool.Add(tex);
-        }
-        Debug.Log($"已同步 publicCardPool，共 {publicCardPool.Count} 張卡。");
-        Debug.Log("publicCardPool 內容：" + string.Join(", ", publicCardPool.ConvertAll(t => t.name)));
-    }
-
-    public void TrySyncOnceAfterGenerate()
-    {
-        if (hasSynced) return;
-        hasSynced = true;
-        SyncMyHandCardsToSystem();
     }
 
     public IEnumerator GeneratePublicCards(float delay)
@@ -196,11 +206,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         photonView.RPC("RPC_GeneratePublicCards_ByNames", RpcTarget.All, selectedNames);
 
     }
-    [PunRPC]
-    public void RPC_GeneratePublicCards_ByNames(string[] colorNames)
-    {
-        StartCoroutine(GeneratePublicCardsFromNames(colorNames));
-    }
+
     public IEnumerator GeneratePublicCardsFromNames(string[] colorNames)
     {
         yield return new WaitForSeconds(0.1f);
@@ -236,6 +242,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (PhotonNetwork.IsMasterClient)
             StartCoroutine(DelayCheckWhiteCard());
     }
+
     private void UpdatePublicCardIndex(int newIndex) //更新牌庫目前取到第幾張
     {
         publicCardIndex = newIndex;
@@ -243,12 +250,87 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         //Debug.Log($"MasterClient 更新並同步 publicCardIndex: {newIndex}");
     }
 
-    [PunRPC]
-    private void RPC_SyncPublicCardIndex(int newIndex)
+    private IEnumerator FadeInCard(CanvasGroup cg)
     {
-        publicCardIndex = newIndex;
-        //Debug.Log($"同步 publicCardIndex: {publicCardIndex}");
+        float duration = 0.3f;
+        float t = 0f;
+        while (t < duration)
+        {
+            cg.alpha = Mathf.Lerp(0, 1, t / duration);
+            t += Time.deltaTime;
+            yield return null;
+        }
+        cg.alpha = 1;
     }
+
+    [PunRPC]
+    public void RPC_SyncPublicCardPool(string[] colorNames)
+    {
+        publicCardPool.Clear();
+        foreach (string name in colorNames)
+        {
+            var tex = System.Array.Find(cards, t => t.name == name);
+            if (tex != null)
+                publicCardPool.Add(tex);
+        }
+        Debug.Log($"已同步 publicCardPool，共 {publicCardPool.Count} 張卡。");
+        Debug.Log("publicCardPool 內容：" + string.Join(", ", publicCardPool.ConvertAll(t => t.name)));
+    }
+
+    [PunRPC]
+    public void RPC_GeneratePublicCards_ByNames(string[] colorNames)
+    {
+        StartCoroutine(GeneratePublicCardsFromNames(colorNames));
+    }
+
+    [PunRPC]
+    public void RPC_RefreshPublicCard(int cardIndex, int poolIndex)
+    {
+        if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
+        if (poolIndex < 0 || poolIndex >= publicCardPool.Count) return;
+
+        Texture2D tex = publicCardPool[poolIndex];
+
+        if (tex != null)
+        {
+            publicCards[cardIndex].SetCard(tex);
+            if (!isWhiteCardExchangeInProgress && PhotonNetwork.IsMasterClient)
+            {
+                StartCoroutine(DelayCheckWhiteCard());
+            }
+
+        }
+    }
+
+    [PunRPC]
+    public void RPC_DestroyPublicCard(int cardIndex)
+    {
+        if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
+
+        if (cardIndex + 1 >= publicCardPool.Count)
+        {
+            Debug.Log("牌庫已用完，改為顯示黑色卡");
+
+            // 顯示黑色卡代替
+            Texture2D blackTex = blackCardTexture;
+
+            if (publicCards[cardIndex] != null)
+                publicCards[cardIndex].SetCard(blackTex);
+
+            return;
+        }
+        var card = publicCards[cardIndex];
+        if (card != null && card.gameObject != null)
+            Destroy(card.gameObject);
+
+        publicCards[cardIndex] = null;
+    }
+
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                   白卡處理與交換
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
 
     private IEnumerator DelayCheckWhiteCard()                       //白色卡功能
     {
@@ -333,7 +415,18 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
-    private Dictionary<int, string> pendingTransfers = new Dictionary<int, string>();
+    [PunRPC]
+    public void RPC_ShowWhiteCardHintText()
+    {
+        whiteCardHintTextPanel.SetActive(true);
+    }
+
+    [PunRPC]
+    public void RPC_HideWhiteCardHintText()
+    {
+        whiteCardHintTextPanel.SetActive(false);
+    }
+
     [PunRPC]
     public void RPC_TriggerCardTransfer()
     {
@@ -363,30 +456,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         yield return StartCoroutine(AnimateCardSelectionCoroutine(myHandCards));
     }
-    [PunRPC]
-    public void RPC_ShowWhiteCardHintText()
-    {
-        whiteCardHintTextPanel.SetActive(true);
-    }
 
-    [PunRPC]
-    public void RPC_HideWhiteCardHintText()
-    {
-        whiteCardHintTextPanel.SetActive(false);
-    }
-
-    private IEnumerator ShowExchangeCardTextSequence()
-    {
-        exchangeCardTextPanel.SetActive(true); 
-        yield return new WaitForSeconds(2f);
-        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = " ";
-        exchangeCardTextPanel.SetActive(false);
-    }
-    [PunRPC]
-    public void RPC_ShowExchangeCancelledMessage()
-    {
-        StartCoroutine(ShowExchangeCardTextSequence());
-    }
     private IEnumerator AnimateCardSelectionCoroutine(HandCardSelect[] cards) //選牌特效
     {
         int totalSteps = cards.Length * 2 + Random.Range(0, cards.Length);
@@ -417,7 +487,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         if (chosen != null)
-        { 
+        {
             chosen.SetHighlight(false);
             string color = chosen.cardColorName;
             int actor = PhotonNetwork.LocalPlayer.ActorNumber;
@@ -425,7 +495,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"您即將交換的手牌是：{color}";
             StartCoroutine(ShowExchangeCardTextSequence());
 
-            StartCoroutine(DelayRearrange());            
+            StartCoroutine(DelayRearrange());
 
             Debug.Log($"玩家 {actor} 最終選擇要傳出的卡是：{color}");
             photonView.RPC("RPC_SubmitCardForTransfer", RpcTarget.MasterClient, actor, color);
@@ -436,15 +506,17 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public Texture2D GetHandCardTextureByName(string colorName) //從手牌堆中尋找對應顏色
+    private IEnumerator ShowExchangeCardTextSequence()
     {
-        foreach (var tex in handCardGenerator.primaryColors)
-            if (tex.name == colorName) return tex;
-
-        foreach (var tex in handCardGenerator.secondaryColors)
-            if (tex.name == colorName) return tex;
-
-        return null;
+        exchangeCardTextPanel.SetActive(true); 
+        yield return new WaitForSeconds(2f);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = " ";
+        exchangeCardTextPanel.SetActive(false);
+    }
+    [PunRPC]
+    public void RPC_ShowExchangeCancelledMessage()
+    {
+        StartCoroutine(ShowExchangeCardTextSequence());
     }
 
     [PunRPC]
@@ -455,42 +527,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         pendingTransfers[actor] = color;
         TryResolveTransfer();
         PhotonView.Get(TurnManager.Instance)?.RPC("RPC_ResumeTurnTimer", RpcTarget.All);
-    }
-
-    [PunRPC]
-    public void RPC_ReceiveCardFromOther(int receiverActor, string colorName)
-    {
-        if (PhotonNetwork.LocalPlayer.ActorNumber != receiverActor) return;
-        //Debug.Log($"玩家 {receiverActor} 準備接收一張卡：{colorName}");
-        StartCoroutine(DelayReceiveCard(colorName));
-    }
-
-    private IEnumerator DelayReceiveCard(string colorName)
-    {
-        yield return new WaitForSeconds(1f);
-
-        Texture2D tex = GetHandCardTextureByName(colorName);
-        if (tex == null)
-        {
-            Debug.LogWarning($"無法找到顏色：{colorName}，玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 沒收到卡");
-            yield break;
-        }
-
-        GameObject newCard = Instantiate(handCardGenerator.handCardPrefab, handCardGenerator.cardContainer);
-        RawImage raw = newCard.GetComponent<RawImage>();
-        raw.texture = tex;
-
-        HandCardSelect hcs = newCard.GetComponent<HandCardSelect>();
-        hcs.cardColorName = tex.name;
-        hcs.SetMode(HandCardMode.Normal);
-        hcs.InitPosition();
-        exchangeCardTextPanel.SetActive(true);
-        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"收到手牌：{colorName}";
-        StartCoroutine(ShowExchangeCardTextSequence());
-        Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 成功接收到卡：{colorName}");
-
-        StartCoroutine(DelayRearrange());
-        SyncMyHandCardsToSystem();
     }
 
     [PunRPC]
@@ -570,6 +606,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
     }
+
     private IEnumerator DelayCheckWhiteCardAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -595,332 +632,53 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         SyncMyHandCardsToSystem();
     }
 
-                                                            //白色卡功能結束
-    private HandCardSelect FindCardByColor(string color)
+    [PunRPC]
+    public void RPC_ReceiveCardFromOther(int receiverActor, string colorName)
     {
-        HandCardSelect[] handCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
-        foreach (var card in handCards)
-        {
-            if (card.cardColorName == color)
-                return card;
-        }
-        return null;
-    }
-    private IEnumerator FadeInCard(CanvasGroup cg)
-    {
-        float duration = 0.3f;
-        float t = 0f;
-        while (t < duration)
-        {
-            cg.alpha = Mathf.Lerp(0, 1, t / duration);
-            t += Time.deltaTime;
-            yield return null;
-        }
-        cg.alpha = 1;
+        if (PhotonNetwork.LocalPlayer.ActorNumber != receiverActor) return;
+        //Debug.Log($"玩家 {receiverActor} 準備接收一張卡：{colorName}");
+        StartCoroutine(DelayReceiveCard(colorName));
     }
 
-    private IEnumerator DelaySyncAfterDestroy()
+    private IEnumerator DelayReceiveCard(string colorName)
     {
-        yield return new WaitForEndOfFrame();  
-        SyncMyHandCardsToSystem();             
-    }
+        yield return new WaitForSeconds(1f);
 
-    public void OnPublicCardClicked(PublicCardSelect card)
-    {
-        if (!TurnManager.IsMyTurn)
+        Texture2D tex = GetHandCardTextureByName(colorName);
+        if (tex == null)
         {
-            Debug.Log("不是你的回合，不能調和公牌！");
-            return;
+            Debug.LogWarning($"無法找到顏色：{colorName}，玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 沒收到卡");
+            yield break;
         }
 
-        if (selectedPublicCard != null && selectedPublicCard != card)
-            selectedPublicCard.SetSelected(false);
-
-        selectedPublicCard = card;
-        selectedPublicCard.SetSelected(true);
-        ShowConfirmPanel();
-    }
-
-    public void ShowConfirmPanel() => confirmPanel.SetActive(true);
-    public void CloseConfirmPanel() => confirmPanel.SetActive(false);
-    public void ShowfailPanel() => failPanel.SetActive(true);
-    public void ClosefailPanel() => failPanel.SetActive(false);
-
-    public void GiveupCard()//棄牌
-    {
-        ClosefailPanel();
-        EnableDiscardSelection();
-        DiceManager.Instance.DeselectResultDiceVisual();
-    }
-    public void EnableDiscardSelection()
-    {
-        Debug.Log("請選擇要棄掉的手牌");
-
-        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
-        {
-            //Debug.Log("設定卡牌為 Discard 模式: " + card.cardColorName);
-            card.SetMode(HandCardMode.DiscardSelection, OnHandCardChosenToDiscard);
-        }
-    }
-    public void OnHandCardChosenToDiscard(HandCardSelect card)
-    {
-        pendingDiscardCard = card;
-        ShowDiscardConfirmPanel();
-        Debug.Log("確認是否棄牌");
-    }
-    public void ShowDiscardConfirmPanel()
-    {
-        discardConfirmPanel.SetActive(true);
-        discardYesButton.onClick.RemoveAllListeners();
-        discardNoButton.onClick.RemoveAllListeners();
-
-        discardYesButton.onClick.AddListener(ConfirmDiscard);
-        discardNoButton.onClick.AddListener(CancelDiscard);
-    }
-
-    public void HideDiscardConfirmPanel()
-    {
-        discardConfirmPanel.SetActive(false);
-    }
-    public void ConfirmDiscard()
-    {
-        if (pendingDiscardCard != null)
-        {
-            Destroy(pendingDiscardCard.gameObject);
-            RearrangeHandCards();
-        }
-
-        // 新增棄牌次數
-        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
-        discardCounts[actor]++;
-        Debug.Log($"玩家 {actor} 棄牌第 {discardCounts[actor]} 次");
-
-        // 若已達3次，標記為出局
-        if (discardCounts[actor] >= 3)
-        {
-            eliminatedPlayers.Add(actor);
-            Debug.Log($"玩家 {actor} 因為棄牌三次出局");
-
-            // 若是自己，顯示提示（可加 UI）
-            if (PhotonNetwork.LocalPlayer.ActorNumber == actor)
-            {
-                exchangeCardTextPanel.SetActive(true);
-                exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "您已出局！";
-                StartCoroutine(ShowExchangeCardTextSequence());
-            }
-        }
-
-        // 發新牌 + 同步
-        Texture2D[] primaryColors = handCardGenerator.primaryColors;
-        Texture2D randomPrimary = primaryColors[Random.Range(0, primaryColors.Length)];
         GameObject newCard = Instantiate(handCardGenerator.handCardPrefab, handCardGenerator.cardContainer);
         RawImage raw = newCard.GetComponent<RawImage>();
-        raw.texture = randomPrimary;
+        raw.texture = tex;
 
         HandCardSelect hcs = newCard.GetComponent<HandCardSelect>();
-        hcs.cardColorName = randomPrimary.name;
+        hcs.cardColorName = tex.name;
         hcs.SetMode(HandCardMode.Normal);
         hcs.InitPosition();
+        exchangeCardTextPanel.SetActive(true);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"收到手牌：{colorName}";
+        StartCoroutine(ShowExchangeCardTextSequence());
+        Debug.Log($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 成功接收到卡：{colorName}");
 
         StartCoroutine(DelayRearrange());
         SyncMyHandCardsToSystem();
-
-        pendingDiscardCard = null;
-        HideDiscardConfirmPanel();
-        ResetHandCardMode();
-        DiceManager.Instance.ResetDiceUI();
-        ResetGemSpent();
-        DelayCheckIfAllPlayersNoHandCards();
-        TurnManager.Instance.CompleteMyTurn();
     }
 
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                    玩家同步相關
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
 
-    public void CancelDiscard()
+    public void TrySyncOnceAfterGenerate()
     {
-        pendingDiscardCard = null;
-        HideDiscardConfirmPanel();
-        EnableDiscardSelection(); 
-        ResetHandCardMode();
-    }
-
-    private void ResetHandCardMode()
-    {
-        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
-        {
-            card.SetMode(HandCardMode.Normal);
-        }
-    }
-    public void OnHandCardSelected(HandCardSelect card)
-    {
-        if (card.isCardSelected)
-        {
-            selectedHandCards.Add(card);
-            selectedHandColors.Add(card.cardColorName);
-        }
-        else
-        {
-            selectedHandCards.Remove(card);
-            selectedHandColors.Remove(card.cardColorName);
-        }
-    }
-
-    public void SelectDiceColor(string color)
-    {
-        //if (!selectedDiceColors.Contains(color))
-            selectedDiceColors.Add(color);
-    }
-
-    public void DeselectDiceColor(string color)
-    {
-        if (selectedDiceColors.Contains(color))
-            selectedDiceColors.Remove(color);
-    }
-
-    public void OnConfirmHarmonize()
-    {
-        if (!TurnManager.IsMyTurn || selectedPublicCard == null)
-        {
-            Debug.Log("非回合或未選擇公牌");
-            return;
-        }
-
-        string targetColor = selectedPublicCard.cardColorName;
-        bool success = CanHarmonize(targetColor, selectedHandColors, selectedDiceColors, out var usedHand, out var usedDice);
-        int gemReward = 0;
-
-        if (success)
-        {
-            int cardIndex = publicCards.IndexOf(selectedPublicCard);
-            if (cardIndex == -1) return;
-
-                if (publicCardIndex < publicCardPool.Count-1)
-                {
-                    int poolIndexToUse = publicCardIndex+1;
-                    UpdatePublicCardIndex(poolIndexToUse);
-                    photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, poolIndexToUse);
-                // Debug.LogWarning("OnConfirmHarmonize：從牌庫中換牌" + publicCardIndex);
-                }
-                else
-                {
-                    Debug.LogWarning("公牌牌庫已用完，無法刷新新的卡牌");
-                    photonView.RPC("RPC_DestroyPublicCard", RpcTarget.All, cardIndex);
-                }
-            
-
-
-            // 先複製要銷毀的卡片
-            List<GameObject> cardsToDestroy = new List<GameObject>();
-            foreach (var card in selectedHandCards)
-            {
-                if (usedHand.Contains(card.cardColorName) && card != null && card.gameObject != null)
-                {
-                    cardsToDestroy.Add(card.gameObject);
-                }
-            }
-
-            // 清空選取資料
-            selectedHandCards.Clear();
-            selectedHandColors.Clear();
-            selectedDiceColors.Clear();
-            selectedPublicCard = null;
-            
-            //關閉自選顏色面板
-            if (usedDice.Exists(color => resultDice.currentlySelectedManual != null &&
-                                          resultDice.currentlySelectedManual.cardColorName == color))
-            {
-                // 取消選取狀態
-                resultDice.currentlySelectedManual.SetSelected(false);
-            }
-            ResetGemSpent();
-            DiceManager.Instance.ResetDiceUI();
-
-            // 銷毀卡牌
-            foreach (var obj in cardsToDestroy)
-            {
-                if (obj != null)
-                    Destroy(obj);
-            }
-
-            // 延遲重新排列與同步
-            StartCoroutine(DelayRearrange());
-            StartCoroutine(DelaySyncAfterDestroy());
-
-            CloseConfirmPanel();
-
-            // 寶石獎勵邏輯
-            if (usedHand.Count > 0 && usedDice.Count == 0)
-                gemReward = 5;
-            else if (usedHand.Count > 0 && usedDice.Count > 0)
-                gemReward = 4;
-            else if (usedHand.Count == 0 && usedDice.Count > 0)
-                gemReward = 3;
-
-            int actor = PhotonNetwork.LocalPlayer.ActorNumber;
-            playerGems[actor] += gemReward;
-
-            UpdateGemUI();
-            photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
-            ShowGemRewardPanel(gemReward);
-            DelayCheckIfAllPlayersNoHandCards();
-            TurnManager.Instance.CompleteMyTurn();
-        }
-        else
-        {
-            Debug.Log("調和失敗");
-            CloseConfirmPanel();
-            ShowfailPanel();
-        }
-    }
-
-    [PunRPC]
-    public void RPC_RefreshPublicCard(int cardIndex, int poolIndex)
-    {
-        if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
-        if (poolIndex < 0 || poolIndex >= publicCardPool.Count) return;
-
-        Texture2D tex = publicCardPool[poolIndex];
-
-        if (tex != null)
-        {
-            publicCards[cardIndex].SetCard(tex);
-            if (!isWhiteCardExchangeInProgress && PhotonNetwork.IsMasterClient)
-            {
-                StartCoroutine(DelayCheckWhiteCard());
-            }
-
-        }
-    }
-
-    [PunRPC]
-    public void RPC_DestroyPublicCard(int cardIndex)
-    {
-        if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
-
-        if (cardIndex+1 >= publicCardPool.Count)
-        {
-            Debug.Log("牌庫已用完，改為顯示黑色卡");
-
-            // 顯示黑色卡代替
-            Texture2D blackTex = blackCardTexture;
-
-            if (publicCards[cardIndex] != null)
-                publicCards[cardIndex].SetCard(blackTex);
-
-            return;
-        }
-        var card = publicCards[cardIndex];
-        if (card != null && card.gameObject != null)
-            Destroy(card.gameObject);
-
-        publicCards[cardIndex] = null;
-    }
-
-
-    [PunRPC]
-    public void RPC_SyncHandCards(int actorNumber, string[] colorArray)
-    {
-        playerHands[actorNumber] = new List<string>(colorArray);
-        UpdateEnemyHandUI();
+        if (hasSynced) return;
+        hasSynced = true;
+        SyncMyHandCardsToSystem();
     }
 
     public void SyncMyHandCardsToSystem()
@@ -931,6 +689,13 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         foreach (var c in cards) colorList.Add(c.cardColorName);
 
         photonView.RPC("RPC_SyncHandCards", RpcTarget.All, actor, colorList.ToArray());
+    }
+
+    [PunRPC]
+    public void RPC_SyncHandCards(int actorNumber, string[] colorArray)
+    {
+        playerHands[actorNumber] = new List<string>(colorArray);
+        UpdateEnemyHandUI();
     }
 
     public void UpdateEnemyHandUI()
@@ -987,22 +752,140 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         else return enemyZone_Left;
     }
 
-    private Dictionary<string, List<List<string>>> colorMixingRules = new Dictionary<string, List<List<string>>>
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                    調和判斷與執行
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    public void OnPublicCardClicked(PublicCardSelect card)
     {
-        { "紅", new List<List<string>> { new List<string>{ "洋紅", "黃" } } },
-        { "綠", new List<List<string>> { new List<string>{ "青", "黃" } } },
-        { "藍", new List<List<string>> { new List<string>{ "洋紅", "青" } } },
-        { "紫", new List<List<string>> { new List<string>{ "洋紅", "洋紅", "青" }, new List<string>{ "藍", "洋紅" } } },
-        { "朱紅", new List<List<string>> { new List<string>{ "洋紅", "洋紅", "黃" }, new List<string>{ "紅", "洋紅" } } },
-        { "黃綠", new List<List<string>> { new List<string>{ "青", "黃", "黃" }, new List<string>{ "綠", "黃" } } },
-        { "青藍", new List<List<string>> { new List<string>{ "青", "青", "洋紅" }, new List<string>{ "青", "藍" } } },
-        { "橙", new List<List<string>> { new List<string>{ "洋紅", "黃", "黃" }, new List<string>{ "紅", "黃" } } },
-        { "藍綠", new List<List<string>> { new List<string>{ "黃", "青", "青" }, new List<string>{ "綠", "青" } } },
-        { "黑", new List<List<string>> { new List<string>{ "洋紅", "青", "黃" }, new List<string>{ "紅", "青" }, new List<string> { "黃", "藍" }, new List<string> { "洋紅", "綠" }, new List<string> { "紅", "藍" }, new List<string> { "紅", "綠" }, new List<string> { "藍", "綠" } } },
-    };
+        if (!TurnManager.IsMyTurn)
+        {
+            Debug.Log("不是你的回合，不能調和公牌！");
+            return;
+        }
+
+        if (selectedPublicCard != null && selectedPublicCard != card)
+            selectedPublicCard.SetSelected(false);
+
+        selectedPublicCard = card;
+        selectedPublicCard.SetSelected(true);
+        ShowConfirmPanel();
+    }
+
+    public void OnHandCardSelected(HandCardSelect card)
+    {
+        if (card.isCardSelected)
+        {
+            selectedHandCards.Add(card);
+            selectedHandColors.Add(card.cardColorName);
+        }
+        else
+        {
+            selectedHandCards.Remove(card);
+            selectedHandColors.Remove(card.cardColorName);
+        }
+    }
+
+    public void OnConfirmHarmonize()
+    {
+        if (!TurnManager.IsMyTurn || selectedPublicCard == null)
+        {
+            Debug.Log("非回合或未選擇公牌");
+            return;
+        }
+
+        string targetColor = selectedPublicCard.cardColorName;
+        bool success = CanHarmonize(targetColor, selectedHandColors, selectedDiceColors, out var usedHand, out var usedDice);
+        int gemReward = 0;
+
+        if (success)
+        {
+            int cardIndex = publicCards.IndexOf(selectedPublicCard);
+            if (cardIndex == -1) return;
+
+            if (publicCardIndex < publicCardPool.Count - 1)
+            {
+                int poolIndexToUse = publicCardIndex + 1;
+                UpdatePublicCardIndex(poolIndexToUse);
+                photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, poolIndexToUse);
+                // Debug.LogWarning("OnConfirmHarmonize：從牌庫中換牌" + publicCardIndex);
+            }
+            else
+            {
+                Debug.LogWarning("公牌牌庫已用完，無法刷新新的卡牌");
+                photonView.RPC("RPC_DestroyPublicCard", RpcTarget.All, cardIndex);
+            }
+
+
+
+            // 先複製要銷毀的卡片
+            List<GameObject> cardsToDestroy = new List<GameObject>();
+            foreach (var card in selectedHandCards)
+            {
+                if (usedHand.Contains(card.cardColorName) && card != null && card.gameObject != null)
+                {
+                    cardsToDestroy.Add(card.gameObject);
+                }
+            }
+
+            // 清空選取資料
+            selectedHandCards.Clear();
+            selectedHandColors.Clear();
+            selectedDiceColors.Clear();
+            selectedPublicCard = null;
+
+            //關閉自選顏色面板
+            if (usedDice.Exists(color => resultDice.currentlySelectedManual != null &&
+                                          resultDice.currentlySelectedManual.cardColorName == color))
+            {
+                // 取消選取狀態
+                resultDice.currentlySelectedManual.SetSelected(false);
+            }
+            ResetGemSpent();
+            DiceManager.Instance.ResetDiceUI();
+
+            // 銷毀卡牌
+            foreach (var obj in cardsToDestroy)
+            {
+                if (obj != null)
+                    Destroy(obj);
+            }
+
+            // 延遲重新排列與同步
+            StartCoroutine(DelayRearrange());
+            StartCoroutine(DelaySyncAfterDestroy());
+
+            CloseConfirmPanel();
+
+            // 寶石獎勵邏輯
+            if (usedHand.Count > 0 && usedDice.Count == 0)
+                gemReward = 5;
+            else if (usedHand.Count > 0 && usedDice.Count > 0)
+                gemReward = 4;
+            else if (usedHand.Count == 0 && usedDice.Count > 0)
+                gemReward = 3;
+
+            int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+            playerGems[actor] += gemReward;
+
+            UpdateGemUI();
+            photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
+            ShowGemRewardPanel(gemReward);
+            DelayCheckIfAllPlayersNoHandCards();
+            TurnManager.Instance.CompleteMyTurn();
+        }
+        else
+        {
+            Debug.Log("調和失敗");
+            CloseConfirmPanel();
+            ShowfailPanel();
+        }
+    }
 
     public string GetMixingTip(string colorName)
-    { 
+    {
         List<List<string>> recipes = colorMixingRules[colorName];
         var mainRecipe = recipes[0];
         string formatted = string.Join(" + ", mainRecipe);
@@ -1054,6 +937,190 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         return false;
     }
 
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                    棄牌與懲罰
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    public void GiveupCard()//棄牌
+    {
+        ClosefailPanel();
+        EnableDiscardSelection();
+        DiceManager.Instance.DeselectResultDiceVisual();
+    }
+
+    public void EnableDiscardSelection()
+    {
+        Debug.Log("請選擇要棄掉的手牌");
+
+        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
+        {
+            //Debug.Log("設定卡牌為 Discard 模式: " + card.cardColorName);
+            card.SetMode(HandCardMode.DiscardSelection, OnHandCardChosenToDiscard);
+        }
+    }
+
+    public void OnHandCardChosenToDiscard(HandCardSelect card)
+    {
+        pendingDiscardCard = card;
+        ShowDiscardConfirmPanel();
+        Debug.Log("確認是否棄牌");
+    }
+
+    public void ShowDiscardConfirmPanel()
+    {
+        discardConfirmPanel.SetActive(true);
+        discardYesButton.onClick.RemoveAllListeners();
+        discardNoButton.onClick.RemoveAllListeners();
+
+        discardYesButton.onClick.AddListener(ConfirmDiscard);
+        discardNoButton.onClick.AddListener(CancelDiscard);
+    }
+
+    public void HideDiscardConfirmPanel()
+    {
+        discardConfirmPanel.SetActive(false);
+    }
+
+    public void ConfirmDiscard()
+    {
+        if (pendingDiscardCard != null)
+        {
+            Destroy(pendingDiscardCard.gameObject);
+            RearrangeHandCards();
+        }
+
+        // 新增棄牌次數
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        discardCounts[actor]++;
+        Debug.Log($"玩家 {actor} 棄牌第 {discardCounts[actor]} 次");
+
+        // 若已達3次，標記為出局
+        if (discardCounts[actor] >= 3)
+        {
+            eliminatedPlayers.Add(actor);
+            Debug.Log($"玩家 {actor} 因為棄牌三次出局");
+
+            // 若是自己，顯示提示（可加 UI）
+            if (PhotonNetwork.LocalPlayer.ActorNumber == actor)
+            {
+                exchangeCardTextPanel.SetActive(true);
+                exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "您已出局！";
+                StartCoroutine(ShowExchangeCardTextSequence());
+            }
+        }
+
+        // 發新牌 + 同步
+        Texture2D[] primaryColors = handCardGenerator.primaryColors;
+        Texture2D randomPrimary = primaryColors[Random.Range(0, primaryColors.Length)];
+        GameObject newCard = Instantiate(handCardGenerator.handCardPrefab, handCardGenerator.cardContainer);
+        RawImage raw = newCard.GetComponent<RawImage>();
+        raw.texture = randomPrimary;
+
+        HandCardSelect hcs = newCard.GetComponent<HandCardSelect>();
+        hcs.cardColorName = randomPrimary.name;
+        hcs.SetMode(HandCardMode.Normal);
+        hcs.InitPosition();
+
+        StartCoroutine(DelayRearrange());
+        SyncMyHandCardsToSystem();
+
+        pendingDiscardCard = null;
+        HideDiscardConfirmPanel();
+        ResetHandCardMode();
+        DiceManager.Instance.ResetDiceUI();
+        ResetGemSpent();
+        DelayCheckIfAllPlayersNoHandCards();
+        TurnManager.Instance.CompleteMyTurn();
+    }
+
+    public void CancelDiscard()
+    {
+        pendingDiscardCard = null;
+        HideDiscardConfirmPanel();
+        EnableDiscardSelection();
+        ResetHandCardMode();
+    }
+
+    private void ResetHandCardMode()
+    {
+        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
+        {
+            card.SetMode(HandCardMode.Normal);
+        }
+    }
+
+    private HandCardSelect FindCardByColor(string color)
+    {
+        HandCardSelect[] handCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
+        foreach (var card in handCards)
+        {
+            if (card.cardColorName == color)
+                return card;
+        }
+        return null;
+    }
+
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                        UI控制
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    public void ShowConfirmPanel() => confirmPanel.SetActive(true);
+    public void CloseConfirmPanel() => confirmPanel.SetActive(false);
+    public void ShowfailPanel() => failPanel.SetActive(true);
+    public void ClosefailPanel() => failPanel.SetActive(false);
+
+    public void ShowGemRewardPanel(int rewardAmount)
+    {
+        GameObject panelToShow = null;
+
+        switch (rewardAmount)
+        {
+            case 3: panelToShow = gemRewardPanel_1; break;
+            case 4: panelToShow = gemRewardPanel_2; break;
+            case 5: panelToShow = gemRewardPanel_3; break;
+        }
+
+        if (panelToShow != null)
+        {
+            StartCoroutine(ShowAndHidePanel(panelToShow, 1f));
+        }
+    }
+
+    private IEnumerator ShowAndHidePanel(GameObject panel, float duration)
+    {
+        panel.SetActive(true);
+        yield return new WaitForSeconds(duration);
+        panel.SetActive(false);
+    }
+
+    public void UpdateGemUI()
+    {
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        if (playerGems.ContainsKey(actor))
+            gemText.text = $"{playerGems[actor]}";
+    }
+
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                        手牌操作與更新
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    public Texture2D GetHandCardTextureByName(string colorName) //從手牌堆中尋找對應顏色
+    {
+        foreach (var tex in handCardGenerator.primaryColors)
+            if (tex.name == colorName) return tex;
+
+        foreach (var tex in handCardGenerator.secondaryColors)
+            if (tex.name == colorName) return tex;
+
+        return null;
+    }
+
     public void RearrangeHandCards()
     {
         List<HandCardSelect> cards = new List<HandCardSelect>();
@@ -1096,6 +1163,35 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
+    private IEnumerator DelayRearrange()
+    {
+        yield return null; // 等待一個 frame，讓 Destroy 完成
+        RearrangeHandCards();
+    }
+
+    private IEnumerator DelaySyncAfterDestroy()
+    {
+        yield return new WaitForEndOfFrame();
+        SyncMyHandCardsToSystem();
+    }
+
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                        寶石與骰子操作
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
+
+    public void SelectDiceColor(string color)
+    {
+        //if (!selectedDiceColors.Contains(color))
+        selectedDiceColors.Add(color);
+    }
+
+    public void DeselectDiceColor(string color)
+    {
+        if (selectedDiceColors.Contains(color))
+            selectedDiceColors.Remove(color);
+    }
 
     public bool TryConsumeGemForDice(bool isPrimaryColorDice)
     {
@@ -1120,22 +1216,20 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             hasOpenedChooseColorPanel = true;
             HideDiceButtons();
             ShowChooseColorPanel(); //自選三原色
-            
+
         }
         return true;
     }
+
     void ShowChooseColorPanel()
     {
         chooseColorPanel.SetActive(true);
     }
+
     public void HideDiceButtons()
     {
         //if (DiceManager.Instance != null)
-       DiceManager.Instance.HideDiceButtons();
-    }
-    public bool CanStillRollDice()
-    {
-        return gemSpentTotal < 3;
+        DiceManager.Instance.HideDiceButtons();
     }
 
     public void ResetGemSpent()
@@ -1148,16 +1242,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         resultDice.currentlySelectedManual = null;
         if (DiceManager.Instance != null)
         {
-            DiceManager.Instance.mainDiceButton.SetActive(true); 
+            DiceManager.Instance.mainDiceButton.SetActive(true);
             DiceManager.Instance.diceChoicePanel.SetActive(false);
         }
     }
 
-    public void UpdateGemUI()
+    public bool CanStillRollDice()
     {
-        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
-        if (playerGems.ContainsKey(actor))
-            gemText.text = $"{playerGems[actor]}";
+        return gemSpentTotal < 3;
     }
 
     [PunRPC]
@@ -1172,40 +1264,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public void ShowGemRewardPanel(int rewardAmount)
-    {
-        GameObject panelToShow = null;
-
-        switch (rewardAmount)
-        {
-            case 3: panelToShow = gemRewardPanel_1; break;
-            case 4: panelToShow = gemRewardPanel_2; break;
-            case 5: panelToShow = gemRewardPanel_3; break;
-        }
-
-        if (panelToShow != null)
-        {
-            StartCoroutine(ShowAndHidePanel(panelToShow, 1f));
-        }
-    }
-
-    private IEnumerator ShowAndHidePanel(GameObject panel, float duration)
-    {
-        panel.SetActive(true);
-        yield return new WaitForSeconds(duration);
-        panel.SetActive(false);
-    }
-
-    private IEnumerator DelayRearrange()
-    {
-        yield return null; // 等待一個 frame，讓 Destroy 完成
-        RearrangeHandCards();
-    }
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                        結算與場景切換
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
 
     public void DelayCheckIfAllPlayersNoHandCards(float delay = 1.5f)
     {
         //if (PhotonNetwork.IsMasterClient)
-            StartCoroutine(DelayCheckCoroutine(delay));
+        StartCoroutine(DelayCheckCoroutine(delay));
     }
 
     private IEnumerator DelayCheckCoroutine(float delay)
@@ -1240,7 +1308,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
-    // 2. 結算寶石與切換場景
+    public bool PlayerHasHandCard(int actorNumber)
+    {
+        return playerHands.ContainsKey(actorNumber) && playerHands[actorNumber].Count > 0;
+    }
+
     public void EndGame()
     {
         foreach (var player in PhotonNetwork.PlayerList)
@@ -1271,10 +1343,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         PhotonNetwork.LoadLevel("EndScene");
     }
 
-    public bool PlayerHasHandCard(int actorNumber)
-    {
-        return playerHands.ContainsKey(actorNumber) && playerHands[actorNumber].Count > 0;
-    }
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                        Photon 事件處理
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
 
     public override void OnDisconnected(DisconnectCause cause)
     {
@@ -1314,6 +1387,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         Debug.Log("成功重新加入房間！");
         // 可依需求恢復場景狀態
     }
+
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                        額外功能
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
 
     public void SetRealtimeTipsEnabled(bool isOn)
     {

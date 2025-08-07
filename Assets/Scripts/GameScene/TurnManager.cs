@@ -7,34 +7,37 @@ using TMPro;
 
 public class TurnManager : MonoBehaviourPunCallbacks
 {
+    //單例與狀態判斷
     public static TurnManager Instance;
+    public static bool IsMyTurn => Instance != null && Instance.currentTurnActor == PhotonNetwork.LocalPlayer.ActorNumber;
+
+    //回合進度控制
     private bool hasShownFirstTurnNotice = false;
-    public Button endTurnButton;
-    public TMP_Text turnTimerText;
-
-    [Header("可選機制")]
-    public bool enableTurnTimer = false;  // 預設不使用倒數計時
-
-    [Header("回合時間設定")]
-    [Tooltip("每回合持續時間（秒）")]
-    public float turnDuration = 10f; 
-
-    private float timeRemaining = 0f; 
-
     public int currentTurnActor = -1;
     private int currentPlayerIndex = -1;
     public bool isPaused = false;
     private Coroutine turnCountdown;
 
+    //倒數計時功能（可選）
+    [Header("可選功能")]
+    public bool enableTurnTimer = false;  // 預設不使用倒數計時
+
+    [Header("回合時間設定")]
+    [Tooltip("每回合持續時間（秒）")]
+    public float turnDuration = 10f;
+    private float timeRemaining = 0f;
+
+    //UI 元件：回合控制按鈕與計時
+    public Button endTurnButton;
+    public TMP_Text turnTimerText;
+
+    //UI 元件：回合提示面板
     [Header("回合提示面板")]
     public GameObject turnNoticeYouPanel;
     public GameObject turnNoticeOtherPanel;
     public TMP_Text otherPlayerNameText;
-    private Coroutine noticeCoroutine;
     public TMP_Text currentTurnPlayerNameText;
-
-
-    public static bool IsMyTurn => Instance != null && Instance.currentTurnActor == PhotonNetwork.LocalPlayer.ActorNumber;
+    private Coroutine noticeCoroutine;
 
     void Awake()
     {
