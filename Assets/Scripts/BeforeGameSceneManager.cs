@@ -13,7 +13,9 @@ public class BeforeGameSceneManager : MonoBehaviourPunCallbacks
     }
     public void OnClickStart()
     {
-
-            SceneManager.LoadScene("GameScene");
+        if (PhotonNetwork.IsMasterClient)
+        {
+            PhotonNetwork.LoadLevel("GameScene");
+        }
     }
 }
