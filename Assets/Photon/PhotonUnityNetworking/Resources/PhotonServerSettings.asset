@@ -63,6 +63,8 @@ MonoBehaviour:
   - RPC_ShowExchangeCancelledMessage
   - RPC_LoadStartScene
   - RPC_RequestEndGame
+  - RPC_EliminatePlayer
+  - RPC_NotifyPlayerEliminated
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

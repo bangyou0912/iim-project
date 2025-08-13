@@ -78,7 +78,9 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 return;
             }
 
-            if (fallbackAllow || GameSceneManager.Instance.PlayerHasHandCard(actorNumber))
+            //若未出局或還有手牌就進入回合
+            if (!GameSceneManager.Instance.eliminatedPlayers.Contains(actorNumber) &&
+                (fallbackAllow || GameSceneManager.Instance.PlayerHasHandCard(actorNumber)))
             {
                 Debug.Log("進入回合：" + actorNumber);
                 photonView.RPC("RPC_StartTurn", RpcTarget.All, actorNumber);
@@ -102,6 +104,14 @@ public class TurnManager : MonoBehaviourPunCallbacks
     void RPC_StartTurn(int actorNumber)
     {
         currentTurnActor = actorNumber;
+       
+        if (GameSceneManager.Instance != null &&
+       GameSceneManager.Instance.eliminatedPlayers.Contains(actorNumber))
+        {
+            Debug.Log($"[自動跳過回合] 玩家 {actorNumber} 已出局");
+            CompleteMyTurn();
+            return;
+        }
 
         bool isMyTurn = (PhotonNetwork.LocalPlayer.ActorNumber == actorNumber);
         Debug.Log(isMyTurn ? "輪到我動作" : $"等待玩家 {actorNumber}");

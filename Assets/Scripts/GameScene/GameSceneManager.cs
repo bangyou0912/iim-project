@@ -158,7 +158,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         foreach (var name in secondaryColorNames)
             AddToPoolByName(name,3);
         foreach (var name in tertiaryColorNames)
-            AddToPoolByName(name,2);
+            AddToPoolByName(name,3);
 
         AddToPoolByName("白",4);
         AddToPoolByName("黑",4);
@@ -245,7 +245,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         publicCardIndex = newIndex;
         photonView.RPC("RPC_SyncPublicCardIndex", RpcTarget.Others, newIndex);
-        //Debug.Log($"MasterClient 更新並同步 publicCardIndex: {newIndex}");
+        Debug.Log($"MasterClient 更新並同步 publicCardIndex: {newIndex}");
     }
 
     private IEnumerator FadeInCard(CanvasGroup cg)
@@ -298,6 +298,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             }
 
         }
+        UpdatePublicCardIndex(poolIndex);
     }
 
     [PunRPC]
@@ -402,7 +403,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             if (publicCardIndex < publicCardPool.Count)
             {
                 int poolIndexToUse = publicCardIndex;
-                UpdatePublicCardIndex(poolIndexToUse+1);
+                //UpdatePublicCardIndex(poolIndexToUse+1);
                 photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, i, poolIndexToUse+1);
             }
             else
@@ -442,7 +443,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         HandCardSelect[] myHandCards = handCardGenerator.cardContainer.GetComponentsInChildren<HandCardSelect>();
-        if (myHandCards.Length == 0)
+        if (myHandCards.Length == 0 || eliminatedPlayers.Contains(PhotonNetwork.LocalPlayer.ActorNumber))
         {
             Debug.LogWarning($"玩家 {PhotonNetwork.LocalPlayer.ActorNumber} 沒有卡可提交，跳過");
             exchangeCardTextPanel.SetActive(true);
@@ -805,9 +806,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             if (publicCardIndex < publicCardPool.Count - 1)
             {
-                int poolIndexToUse = publicCardIndex + 1;
-                UpdatePublicCardIndex(poolIndexToUse);
-                photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, poolIndexToUse);
+                int poolIndexToUse = publicCardIndex;
+                //UpdatePublicCardIndex(poolIndexToUse);
+                photonView.RPC("RPC_RefreshPublicCard", RpcTarget.All, cardIndex, poolIndexToUse+1);
                 // Debug.LogWarning("OnConfirmHarmonize：從牌庫中換牌" + publicCardIndex);
             }
             else
@@ -815,8 +816,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                 Debug.LogWarning("公牌牌庫已用完，無法刷新新的卡牌");
                 photonView.RPC("RPC_DestroyPublicCard", RpcTarget.All, cardIndex);
             }
-
-
 
             // 先複製要銷毀的卡片
             List<GameObject> cardsToDestroy = new List<GameObject>();
@@ -1060,13 +1059,17 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         ClosefailPanel();
         EnableDiscardSelection();
+        //提示需選擇一張卡牌
+        exchangeCardTextPanel.SetActive(true);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "請選擇一張手牌丟棄";
+        StartCoroutine(ShowExchangeCardTextSequence());
         DiceManager.Instance.DeselectResultDiceVisual();
+        selectedHandColors.Clear();
     }
 
     public void EnableDiscardSelection()
     {
         Debug.Log("請選擇要棄掉的手牌");
-
         foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
         {
             //Debug.Log("設定卡牌為 Discard 模式: " + card.cardColorName);
@@ -1098,6 +1101,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void ConfirmDiscard()
     {
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        
         if (pendingDiscardCard != null)
         {
             Destroy(pendingDiscardCard.gameObject);
@@ -1105,23 +1110,28 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         // 新增棄牌次數
-        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
         discardCounts[actor]++;
         Debug.Log($"玩家 {actor} 棄牌第 {discardCounts[actor]} 次");
-
+        
+        bool isEliminated = false;
         // 若已達3次，標記為出局
         if (discardCounts[actor] >= 3)
         {
-            eliminatedPlayers.Add(actor);
-            Debug.Log($"玩家 {actor} 因為棄牌三次出局");
+            isEliminated = true;
 
-            // 若是自己，顯示提示（可加 UI）
-            if (PhotonNetwork.LocalPlayer.ActorNumber == actor)
+            // 加入本地列表
+            if (!eliminatedPlayers.Contains(actor))
+                EliminatePlayer(actor);
+
+            // LocalPlayer 先顯示自己的出局提示
+            if (actor == PhotonNetwork.LocalPlayer.ActorNumber)
             {
+                StopCoroutine(ShowExchangeCardTextSequence());
                 exchangeCardTextPanel.SetActive(true);
                 exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "您已出局！";
                 StartCoroutine(ShowExchangeCardTextSequence());
             }
+            StartCoroutine(DelayNotifyOthersEliminated(actor, 2f));
         }
 
         // 發新牌 + 同步
@@ -1138,6 +1148,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         StartCoroutine(DelayRearrange());
         SyncMyHandCardsToSystem();
+        //獲得三原色提示
+        exchangeCardTextPanel.SetActive(true);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"獲得三原色卡：{randomPrimary.name}";
+        StartCoroutine(ShowExchangeCardTextSequence());
 
         pendingDiscardCard = null;
         HideDiscardConfirmPanel();
@@ -1146,6 +1160,51 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         ResetGemSpent();
         DelayCheckIfAllPlayersNoHandCards();
         TurnManager.Instance.CompleteMyTurn();
+    }
+
+    private IEnumerator DelayNotifyOthersEliminated(int actorNumber, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        photonView.RPC("RPC_NotifyPlayerEliminated", RpcTarget.Others, actorNumber);
+    }
+    [PunRPC]
+    void RPC_NotifyPlayerEliminated(int actorNumber)
+    {
+        StopCoroutine(ShowExchangeCardTextSequence());
+        var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+        string name = player != null ? player.NickName : actorNumber.ToString();
+
+        // 顯示出局提示
+        exchangeCardTextPanel.SetActive(true);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"玩家 {name} 因為棄牌三次出局";
+        StartCoroutine(ShowExchangeCardTextSequence());
+
+        // Debug
+        Debug.Log($"玩家 {name} 出局");
+    }
+    public void EliminatePlayer(int actorNumber)
+    {
+        if (!eliminatedPlayers.Contains(actorNumber))
+        {
+            eliminatedPlayers.Add(actorNumber);
+
+            // 同步給所有其他玩家
+            photonView.RPC("RPC_EliminatePlayer", RpcTarget.Others, actorNumber);
+
+            Debug.Log($"[EliminatePlayer] 玩家 {actorNumber} 出局，已同步到其他玩家。");
+            //PrintEliminatedPlayers();
+        }
+    }
+
+    [PunRPC]
+    void RPC_EliminatePlayer(int actorNumber)
+    {
+        if (!eliminatedPlayers.Contains(actorNumber))
+        {
+            eliminatedPlayers.Add(actorNumber);
+            Debug.Log($"[RPC_EliminatePlayer] 收到同步 → 玩家 {actorNumber} 出局。");
+            //PrintEliminatedPlayers();
+        }
     }
 
     public void CancelDiscard()
@@ -1401,15 +1460,18 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         {
             int actor = player.ActorNumber;
 
-            // 只要有一個人沒出局且有手牌，就繼續
-            if (!eliminatedPlayers.Contains(actor) && PlayerHasHandCard(actor))
+            //只檢查還沒出局的玩家
+            if (!eliminatedPlayers.Contains(actor))
             {
-                Debug.Log($"玩家 {actor} 仍有手牌，繼續遊戲");
-                return;
+                if (PlayerHasHandCard(actor))
+                {
+                    Debug.Log($"玩家 {actor} 仍有手牌，繼續遊戲");
+                    return;
+                }
             }
         }
 
-        Debug.Log("所有玩家已出局或無手牌，遊戲結束！");
+        Debug.Log("所有未出局玩家皆無手牌，遊戲結束！");
 
         if (PhotonNetwork.IsMasterClient)
         {
@@ -1420,6 +1482,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             photonView.RPC("RPC_RequestEndGame", RpcTarget.MasterClient);
         }
     }
+
 
     public bool PlayerHasHandCard(int actorNumber)
     {
