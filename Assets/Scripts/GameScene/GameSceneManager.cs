@@ -77,6 +77,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public Button discardYesButton;
     public Button discardNoButton;
 
+    public GameObject discardHintPanel;
+
     public GameObject whiteCardHintTextPanel;
     public GameObject exchangeCardTextPanel;
     private List<int> whiteCardIndicesToDestroyAfterTransfer = new List<int>();
@@ -105,6 +107,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     // 其他 UI 控制
     public GameObject darkBackground;
+
+    [Header("出局相關 UI")]
+    public GameObject eliminationOverlay; // 黑幕 UI
 
     /*
     -------------------------------------------------------------------------------------------------------------------------------------
@@ -1087,6 +1092,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         ClosefailPanel();
         EnableDiscardSelection();
         //提示需選擇一張卡牌
+        if (discardHintPanel != null)
+            discardHintPanel.SetActive(true);
+
         exchangeCardTextPanel.SetActive(true);
         exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "請選擇一張手牌丟棄";
         StartCoroutine(ShowExchangeCardTextSequence());
@@ -1107,6 +1115,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void OnHandCardChosenToDiscard(HandCardSelect card)
     {
         pendingDiscardCard = card;
+        if (discardHintPanel != null)
+            discardHintPanel.SetActive(false);
         ShowDiscardConfirmPanel();
         Debug.Log("確認是否棄牌");
     }
@@ -1192,22 +1202,34 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private IEnumerator DelayNotifyOthersEliminated(int actorNumber, float delay)
     {
         yield return new WaitForSeconds(delay);
-        photonView.RPC("RPC_NotifyPlayerEliminated", RpcTarget.Others, actorNumber);
+        photonView.RPC("RPC_NotifyPlayerEliminated", RpcTarget.All, actorNumber);
     }
     [PunRPC]
     void RPC_NotifyPlayerEliminated(int actorNumber)
     {
         StopCoroutine(ShowExchangeCardTextSequence());
-        var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
-        string name = player != null ? player.NickName : actorNumber.ToString();
 
-        // 顯示出局提示
+        string displayText = "";
+
+        if (PhotonNetwork.LocalPlayer.ActorNumber == actorNumber)
+        {
+            displayText = "您已出局！";
+
+            if (eliminationOverlay != null)
+                eliminationOverlay.SetActive(true);
+        }
+        else
+        {
+            var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+            string name = player != null ? player.NickName : actorNumber.ToString();
+            displayText = $"玩家 {name} 因為棄牌三次出局";
+        }
+
         exchangeCardTextPanel.SetActive(true);
-        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = $"玩家 {name} 因為棄牌三次出局";
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = displayText;
         StartCoroutine(ShowExchangeCardTextSequence());
 
-        // Debug
-        Debug.Log($"玩家 {name} 出局");
+        Debug.Log(displayText);
     }
     public void EliminatePlayer(int actorNumber)
     {
