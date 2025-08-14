@@ -11,6 +11,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 {
     // 單例 & 狀態管理
     public static GameSceneManager Instance;
+    private Coroutine currentExchangeCoroutine;
     public bool isWhiteCardExchangeInProgress = false;
     private bool hasOpenedChooseColorPanel = false;
     private bool hasSynced = false;
@@ -127,7 +128,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         cancelfailButton.onClick.AddListener(ClosefailPanel);
 
         handCardGenerator.StartGeneratingCards();
-
+        eliminatedPlayers.Clear();
         if (PhotonNetwork.IsMasterClient)
         {
             InitializePublicCardPool();
@@ -153,16 +154,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         publicCardPool.Clear();
 
         string[] secondaryColorNames = { "紅", "綠", "藍" };
-        string[] tertiaryColorNames = { "紫", "橙", "青藍", "黃綠", "朱紅", "藍綠" };
+        string[] tertiaryColorNames = { "紫", "橙", "青綠", "黃綠", "朱紅", "藍綠" };
 
         foreach (var name in secondaryColorNames)
-            AddToPoolByName(name,3);
+            AddToPoolByName(name, 3);
         foreach (var name in tertiaryColorNames)
-            AddToPoolByName(name,3);
+            AddToPoolByName(name, 3);
 
-        AddToPoolByName("白",4);
-        AddToPoolByName("黑",4);
-        
+        AddToPoolByName("白", 4);
+        AddToPoolByName("黑", 4);
 
         // 洗牌
         for (int i = 0; i < publicCardPool.Count; i++)
@@ -173,10 +173,16 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             publicCardPool[randIndex] = temp;
         }
 
+        // 廣播整個牌池給所有人
         string[] cardNames = publicCardPool.ConvertAll(tex => tex.name).ToArray();
         photonView.RPC("RPC_SyncPublicCardPool", RpcTarget.Others, cardNames);
-    }
 
+        // 只有主持人負責決定初始牌庫索引
+        if (PhotonNetwork.IsMasterClient)
+        {
+            publicCardIndex = 0;
+        }
+    }
     private void AddToPoolByName(string name, int count)
     {
         Texture2D tex = System.Array.Find(cards, t => t.name == name);
@@ -189,22 +195,29 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public IEnumerator GeneratePublicCards(float delay)
     {
         yield return new WaitForSeconds(delay);
+
+        // 非主持人直接結束，不做任何事
+        if (!PhotonNetwork.IsMasterClient)
+            yield break;
+
         int cardCount = 4;
         string[] selectedNames = new string[cardCount];
+
         for (int i = 0; i < cardCount; i++)
         {
             if (publicCardIndex < publicCardPool.Count)
             {
                 selectedNames[i] = publicCardPool[publicCardIndex].name;
-                UpdatePublicCardIndex(publicCardIndex + 1);
+                publicCardIndex++;
             }
         }
-        UpdatePublicCardIndex(publicCardIndex - 1); //調整第一次生成公牌後的牌庫索引
-        //Debug.Log("初始公牌生成結束：牌庫"+publicCardIndex);
+        publicCardIndex = publicCardIndex - 1;
+        // 廣播公牌顏色給所有人
         photonView.RPC("RPC_GeneratePublicCards_ByNames", RpcTarget.All, selectedNames);
 
+        // 同步牌庫索引給所有人
+        photonView.RPC("RPC_SyncPublicCardIndex", RpcTarget.All, publicCardIndex);
     }
-
     public IEnumerator GeneratePublicCardsFromNames(string[] colorNames)
     {
         yield return new WaitForSeconds(0.1f);
@@ -237,17 +250,22 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             StartCoroutine(FadeInCard(cg));
             yield return new WaitForSeconds(0.15f);
         }
+
         if (PhotonNetwork.IsMasterClient)
             StartCoroutine(DelayCheckWhiteCard());
     }
-
-    private void UpdatePublicCardIndex(int newIndex) //更新牌庫目前取到第幾張
+    private void UpdatePublicCardIndex(int newIndex)//更新牌庫目前取到第幾張
     {
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            Debug.LogWarning("非主持人不能更新 publicCardIndex！");
+            return;
+        }
+
         publicCardIndex = newIndex;
-        photonView.RPC("RPC_SyncPublicCardIndex", RpcTarget.Others, newIndex);
+        photonView.RPC("RPC_SyncPublicCardIndex", RpcTarget.All, newIndex);
         Debug.Log($"MasterClient 更新並同步 publicCardIndex: {newIndex}");
     }
-
     private IEnumerator FadeInCard(CanvasGroup cg)
     {
         float duration = 0.3f;
@@ -274,7 +292,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         Debug.Log($"已同步 publicCardPool，共 {publicCardPool.Count} 張卡。");
         Debug.Log("publicCardPool 內容：" + string.Join(", ", publicCardPool.ConvertAll(t => t.name)));
     }
-
+    [PunRPC]
+    public void RPC_SyncPublicCardIndex(int newIndex)
+    {
+        publicCardIndex = newIndex;
+        Debug.Log($"已同步 publicCardIndex: {newIndex}");
+    }
     [PunRPC]
     public void RPC_GeneratePublicCards_ByNames(string[] colorNames)
     {
@@ -298,7 +321,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             }
 
         }
-        UpdatePublicCardIndex(poolIndex);
+        if (PhotonNetwork.IsMasterClient)
+        {
+            UpdatePublicCardIndex(poolIndex);
+        }
     }
 
     [PunRPC]
@@ -508,16 +534,20 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private IEnumerator ShowExchangeCardTextSequence()
     {
         exchangeCardTextPanel.SetActive(true); 
-        yield return new WaitForSeconds(2f);
+        yield return new WaitForSeconds(1.75f);
         exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = " ";
         exchangeCardTextPanel.SetActive(false);
+        currentExchangeCoroutine = null;
     }
     [PunRPC]
     public void RPC_ShowExchangeCancelledMessage()
     {
-        StartCoroutine(ShowExchangeCardTextSequence());
+        if (currentExchangeCoroutine != null)
+            StopCoroutine(currentExchangeCoroutine);
+        exchangeCardTextPanel.SetActive(true);
+        exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "交換人數不足,取消交換";
+        currentExchangeCoroutine = StartCoroutine(ShowExchangeCardTextSequence());
     }
-
     [PunRPC]
     public void RPC_SubmitCardForTransfer(int actor, string color)
     {
@@ -537,7 +567,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         {
             pendingTransfers[actorNumber] = null;
         }
-
         TryResolveTransfer();
     }
 
@@ -546,7 +575,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         // 尚未所有玩家提交
         if (pendingTransfers.Count < PhotonNetwork.PlayerList.Length)
             return;
-
+        
         // 收集有提交卡的玩家
         List<int> activeActors = new List<int>();
         foreach (var kvp in pendingTransfers)
@@ -559,10 +588,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         if (activeActors.Count < 2)
         {
-            exchangeCardTextPanel.SetActive(true);
-            exchangeCardTextPanel.GetComponentInChildren<TextMeshProUGUI>().text = "交換人數不足,取消交換";
             photonView.RPC("RPC_ShowExchangeCancelledMessage", RpcTarget.All);
-
+            
             Debug.Log("提交卡片的人數不足 (<2)，交換取消。");
             isWhiteCardExchangeInProgress = false;
             pendingTransfers.Clear();
