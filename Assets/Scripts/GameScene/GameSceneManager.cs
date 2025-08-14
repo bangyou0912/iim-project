@@ -147,6 +147,11 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             discardCounts[player.ActorNumber] = 0; 
             UpdateGemUI();
         }
+
+        if (AudioManager.Instance == null)
+        {
+            Instantiate(Resources.Load<GameObject>("AudioManager"));
+        }
     }
 
     /*

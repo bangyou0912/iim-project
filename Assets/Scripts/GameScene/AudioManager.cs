@@ -11,7 +11,7 @@ public class AudioManager : MonoBehaviour
     public AudioSource sfxSource;
     public AudioClip clearSound;
 
-    public AudioClip clickSound;
+    public  static AudioClip clickSound;
 
     void Awake()
     {
@@ -45,7 +45,11 @@ public class AudioManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (scene.name == "EndScene")
+        if (scene.name == "GameScene")
+        {
+            PlayBGM();
+        }
+        else if (scene.name == "EndScene")
         {
             StopBGM();
             PlaySFX(clearSound);
