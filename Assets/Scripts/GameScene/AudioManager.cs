@@ -11,6 +11,8 @@ public class AudioManager : MonoBehaviour
     public AudioSource sfxSource;
     public AudioClip clearSound;
 
+    public AudioClip clickSound;
+
     void Awake()
     {
         if (Instance == null)
@@ -69,7 +71,15 @@ public class AudioManager : MonoBehaviour
     {
         if (clip != null)
         {
-            sfxSource.PlayOneShot(clip);
+            sfxSource.PlayOneShot(clip,0.8f);
+        }
+    }
+
+    public void PlayBubble(AudioClip clickSound)
+    {
+        if (clickSound != null)
+        {
+            sfxSource.PlayOneShot(clickSound,1.8f);
         }
     }
 }

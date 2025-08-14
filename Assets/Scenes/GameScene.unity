@@ -609,7 +609,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 79381575}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 252976671}
+        m_TargetAssemblyTypeName: AudioManager, Assembly-CSharp
+        m_MethodName: PlayBubble
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 8300000, guid: 5871f5ba759ebcf4980c43e9aafb2451, type: 3}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.AudioClip, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &80964717
 GameObject:
   m_ObjectHideFlags: 0
@@ -1136,7 +1148,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.8
   m_Pitch: 1
   Loop: 1
   Mute: 0
@@ -1233,9 +1245,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bgmSource: {fileID: 252976670}
-  bgmClip: {fileID: 8300000, guid: 0f9ec2ca80fb2da48bbd15a32c1f8941, type: 3}
+  bgmClip: {fileID: 8300000, guid: 69480f5057b390442b170d8e92304177, type: 3}
   sfxSource: {fileID: 252976672}
   clearSound: {fileID: 8300000, guid: 89e4ece69b506704ebdba57cfd4f9dcf, type: 3}
+  clickSound: {fileID: 8300000, guid: 5871f5ba759ebcf4980c43e9aafb2451, type: 3}
 --- !u!82 &252976672
 AudioSource:
   m_ObjectHideFlags: 0
@@ -1249,7 +1262,7 @@ AudioSource:
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
-  m_Volume: 1
+  m_Volume: 0.8
   m_Pitch: 1
   Loop: 0
   Mute: 0
@@ -4089,7 +4102,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1000386995}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 252976671}
+        m_TargetAssemblyTypeName: AudioManager, Assembly-CSharp
+        m_MethodName: PlayBubble
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 8300000, guid: 5871f5ba759ebcf4980c43e9aafb2451, type: 3}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.AudioClip, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1000386995
 MonoBehaviour:
   m_ObjectHideFlags: 0

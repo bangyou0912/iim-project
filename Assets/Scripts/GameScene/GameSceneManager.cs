@@ -1549,8 +1549,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         });
         }
         StartCoroutine(LoadEndSceneWithDelay(1f));
-        AudioManager.Instance.StopBGM();
-        AudioManager.Instance.PlaySFX(AudioManager.Instance.clearSound);
     }
 
     [PunRPC]
