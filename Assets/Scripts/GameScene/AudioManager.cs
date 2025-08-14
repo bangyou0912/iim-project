@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class AudioManager : MonoBehaviour
 {
@@ -7,8 +8,8 @@ public class AudioManager : MonoBehaviour
     public AudioSource bgmSource;
     public AudioClip bgmClip;
 
-    public AudioSource sfxSource;  // 撥放一次性音效
-    public AudioClip clearSound;   // 過關音效
+    public AudioSource sfxSource;
+    public AudioClip clearSound;
 
     void Awake()
     {
@@ -16,6 +17,7 @@ public class AudioManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded; //監聽場景切換
         }
         else
         {
@@ -39,6 +41,15 @@ public class AudioManager : MonoBehaviour
         PlayBGM();
     }
 
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (scene.name == "EndScene")
+        {
+            StopBGM();
+            PlaySFX(clearSound);
+        }
+    }
+
     public void PlayBGM()
     {
         if (bgmClip != null)
@@ -50,7 +61,8 @@ public class AudioManager : MonoBehaviour
 
     public void StopBGM()
     {
-        bgmSource.Stop();
+        if (bgmSource.isPlaying)
+            bgmSource.Stop();
     }
 
     public void PlaySFX(AudioClip clip)
