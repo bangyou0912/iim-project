@@ -93,6 +93,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     // 即時提示（可選功能）
     [Header("可選功能設定")]
     public bool enableRealtimeTips = false;
+    public GameObject colorCirclePrefab;//動畫圓形prefab
+    public Transform canvasTransform;
 
     [Header("提示文字 UI")]
     public GameObject TipPanel;
@@ -126,7 +128,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         yellow_retangular.gameObject.SetActive(false);
         confirmPanel.SetActive(false);
-        confirmButton.onClick.AddListener(OnConfirmHarmonize);
+        confirmButton.onClick.AddListener(() => StartCoroutine(OnConfirmHarmonizeCoroutine()));
         cancelButton.onClick.AddListener(CloseConfirmPanel);
         failPanel.SetActive(false);
         confirmfailButton.onClick.AddListener(GiveupCard);
@@ -824,22 +826,36 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
-    public void OnConfirmHarmonize()
+    IEnumerator OnConfirmHarmonizeCoroutine()
     {
         if (!TurnManager.IsMyTurn || selectedPublicCard == null)
         {
             Debug.Log("非回合或未選擇公牌");
-            return;
+            yield break;
         }
 
         string targetColor = selectedPublicCard.cardColorName;
+
+        if (enableRealtimeTips) //即時回饋動畫
+        {
+            // 取配方第一組成顏色
+            List<string> recipe = colorMixingRules[targetColor][0];
+            List<Color> componentColors = new List<Color>();
+            foreach (var name in recipe)
+                componentColors.Add(ColorFromName(name));
+
+            Color resultColor = ColorFromName(targetColor);
+
+            yield return StartCoroutine(PlayMixCoroutine(componentColors, resultColor));
+        }
+
         bool success = CanHarmonize(targetColor, selectedHandColors, selectedDiceColors, out var usedHand, out var usedDice);
         int gemReward = 0;
 
         if (success)
         {
             int cardIndex = publicCards.IndexOf(selectedPublicCard);
-            if (cardIndex == -1) return;
+            if (cardIndex == -1) yield break;
 
             if (publicCardIndex < publicCardPool.Count - 1)
             {
@@ -970,7 +986,77 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         return false;
     }
+    private IEnumerator PlayMixCoroutine(List<Color> componentColors, Color resultColor)//顏色合成動畫
+    {
+        List<GameObject> circles = new List<GameObject>();
+        Vector3[] startPositions;
 
+        if (componentColors.Count == 2)
+            startPositions = new Vector3[] { new Vector3(-200, 0, 0), new Vector3(200, 0, 0) };
+        else // 3色
+            startPositions = new Vector3[] { new Vector3(-200, -100, 0), new Vector3(200, -100, 0), new Vector3(0, 200, 0) };
+
+        for (int i = 0; i < componentColors.Count; i++)
+        {
+            var circle = Instantiate(colorCirclePrefab, canvasTransform);
+            var image = circle.GetComponent<Image>();
+            Color c = componentColors[i];
+            c.a = 0.5f; // 半透明
+            image.color = c;
+
+            var rt = circle.GetComponent<RectTransform>();
+            rt.anchoredPosition = startPositions[i];
+            rt.localScale = Vector3.one;
+            circles.Add(circle);
+        }
+
+        // 移動到中心
+        float t = 0f;
+        float moveDuration = 1f;
+        while (t < moveDuration)
+        {
+            t += Time.deltaTime;
+            float lerp = Mathf.Clamp01(t / moveDuration);
+            for (int i = 0; i < circles.Count; i++)
+                circles[i].GetComponent<RectTransform>().anchoredPosition = Vector3.Lerp(startPositions[i], Vector3.zero, lerp);
+            yield return null;
+        }
+
+        // 混合結果
+        foreach (var c in circles)
+            Destroy(c);
+
+        var resultCircle = Instantiate(colorCirclePrefab, canvasTransform);
+        RectTransform rtresult = resultCircle.GetComponent<RectTransform>();
+        rtresult.anchoredPosition = Vector3.zero;
+        rtresult.localScale = Vector3.one * 1.5f;
+        resultCircle.GetComponent<Image>().color = resultColor;
+
+        yield return new WaitForSeconds(0.5f); // 保留 0.5 秒
+        Destroy(resultCircle);
+    }
+
+    // 將名稱轉成 Color
+    private Color ColorFromName(string colorName)
+    {
+        switch (colorName)
+        {
+            case "紅": return new Color(1f, 0f, 0f);
+            case "藍": return new Color(0f, 0f, 1f);
+            case "綠": return new Color(0f, 1f, 0f);
+            case "紫": return new Color(0.667f, 0.333f, 1f);   // 洋紅+洋紅+青
+            case "朱紅": return new Color(1f, 0.333f, 0.667f);  // 洋紅+洋紅+黃
+            case "黃綠": return new Color(0.667f, 1f, 0.333f);  // 青+黃+黃
+            case "青藍": return new Color(0.333f, 0.667f, 1f);  // 青+青+洋紅
+            case "橙": return new Color(1f, 0.667f, 0.333f);  // 洋紅+黃+黃
+            case "藍綠": return new Color(0.333f, 1f, 0.667f);  // 黃+青+青
+            case "黑": return new Color(0f, 0f, 0f); // 洋紅+青+黃
+            case "洋紅": return new Color(1f, 0f, 1f);
+            case "青": return new Color(0f, 1f, 1f);
+            case "黃": return new Color(1f, 1f, 0f);
+            default: return Color.white;
+        }
+    }
     public void HighlightMatchHandCards(string targetColor)
     {
         // 1. 收集手牌資料
@@ -1626,7 +1712,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void SetRealtimeTipsEnabled(bool isOn)
     {
         enableRealtimeTips = isOn;
-        if (!isOn && TipPanel != null)
-            TipPanel.SetActive(false);
+        //if (!isOn && TipPanel != null)
+            //TipPanel.SetActive(false);
     }
 }
