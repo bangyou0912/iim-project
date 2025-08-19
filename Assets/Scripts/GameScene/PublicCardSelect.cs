@@ -66,6 +66,7 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
         transform.SetAsLastSibling();
 
+        /*
         if (GameSceneManager.Instance != null &&
         GameSceneManager.Instance.enableRealtimeTips &&
         GameSceneManager.Instance.hoverTipText != null)
@@ -76,6 +77,7 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
             GameSceneManager.Instance.hoverTipText.gameObject.SetActive(true);
             GameSceneManager.Instance.HighlightMatchHandCards(cardColorName);
         }
+        */
     }
 
     public void OnPointerExit(PointerEventData eventData)
@@ -88,12 +90,14 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
         if (highlighted != null)
             highlighted.gameObject.SetActive(false);
 
+        /*
         if (GameSceneManager.Instance != null && GameSceneManager.Instance.hoverTipText != null)
         {
             GameSceneManager.Instance.TipPanel.gameObject.SetActive(false);
             GameSceneManager.Instance.hoverTipText.gameObject.SetActive(false);
             GameSceneManager.Instance.ClearAllHandCardHover();
         }
+        */
     }
 
     public void OnPointerClick(PointerEventData eventData)
