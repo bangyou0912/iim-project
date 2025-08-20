@@ -1039,15 +1039,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             case "¬õ": return new Color(1f, 0f, 0f);
             case "ÂÅ": return new Color(0f, 0f, 1f);
             case "ºñ": return new Color(0f, 1f, 0f);
-            case "µµ": return new Color(0.667f, 0.333f, 1f);   // ¬v¬õ+¬v¬õ+«C
+            case "µµ": return new Color(1f, 0f, 1f);   // ¬v¬õ+¬v¬õ+«C
             case "¦¶¬õ": return new Color(1f, 0.333f, 0.667f);  // ¬v¬õ+¬v¬õ+¶À
             case "¶Àºñ": return new Color(0.667f, 1f, 0.333f);  // «C+¶À+¶À
             case "«CÂÅ": return new Color(0.333f, 0.667f, 1f);  // «C+«C+¬v¬õ
             case "¾í": return new Color(1f, 0.667f, 0.333f);  // ¬v¬õ+¶À+¶À
-            case "ÂÅºñ": return new Color(0.333f, 1f, 0.667f);  // ¶À+«C+«C
+            case "ÂÅºñ": return new Color(0.333f, 1f, 0.8f);  // ¶À+«C+«C
             case "¶Â": return new Color(0f, 0f, 0f); // ¬v¬õ+«C+¶À
-            case "¬v¬õ": return new Color(1f, 0f, 1f);
-            case "«C": return new Color(0f, 1f, 1f);
+            case "¬v¬õ": return new Color(1f, 0.1f, 0.8f);
+            case "«C": return new Color(0f, 0.6f, 1f);
             case "¶À": return new Color(1f, 1f, 0f);
             default: return Color.white;
         }

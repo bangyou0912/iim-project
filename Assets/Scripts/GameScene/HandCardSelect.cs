@@ -81,8 +81,21 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
                 break;
 
             case HandCardMode.DiscardSelection:
-                isCardSelected = !isCardSelected;
+                var allCards = FindObjectsOfType<HandCardSelect>();
+                foreach (var card in allCards)
+                {
+                    if (card != this)
+                    {
+                        card.isCardSelected = false;
+                        card.ApplySelectionVisual();
+                    }
+                }
+
+                // 只選中自己
+                isCardSelected = true;
                 ApplySelectionVisual();
+
+                // 通知 callback
                 onDiscardSelectedCallback?.Invoke(this);
                 break;
         }
