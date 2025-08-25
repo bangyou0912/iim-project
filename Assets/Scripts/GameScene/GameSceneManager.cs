@@ -6,7 +6,8 @@ using Photon.Pun;
 using Photon.Realtime;
 using static HandCardSelect;
 using TMPro;
-
+using System.IO;
+using System;
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
     // 單例 & 狀態管理
@@ -14,6 +15,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private Coroutine currentExchangeCoroutine;
     public bool isWhiteCardExchangeInProgress = false;
     private bool hasOpenedChooseColorPanel = false;
+    private bool firstFinishAwarded = false; //紀錄是否已有人出局
     private bool hasSynced = false;
     private int gemSpentTotal = 0;
     private Dictionary<string, List<List<string>>> colorMixingRules = new Dictionary<string, List<List<string>>>
@@ -36,7 +38,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public HashSet<int> eliminatedPlayers = new HashSet<int>(); // 出局玩家
     private Dictionary<int, List<string>> playerHands = new Dictionary<int, List<string>>();
     private Dictionary<int, string> pendingTransfers = new Dictionary<int, string>();
-
+    
     //手牌與選取資料（邏輯用）
     private List<string> selectedHandColors = new List<string>();
     private List<HandCardSelect> selectedHandCards = new List<HandCardSelect>();
@@ -180,7 +182,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         for (int i = 0; i < publicCardPool.Count; i++)
         {
             var temp = publicCardPool[i];
-            int randIndex = Random.Range(i, publicCardPool.Count);
+            int randIndex = UnityEngine.Random.Range(i, publicCardPool.Count);
             publicCardPool[i] = publicCardPool[randIndex];
             publicCardPool[randIndex] = temp;
         }
@@ -496,7 +498,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     private IEnumerator AnimateCardSelectionCoroutine(HandCardSelect[] cards) //選牌特效
     {
-        int totalSteps = cards.Length * 2 + Random.Range(0, cards.Length);
+        int totalSteps = cards.Length * 2 + UnityEngine.Random.Range(0, cards.Length);
         int currentIndex = 0;
 
         for (int i = 0; i < totalSteps; i++)
@@ -722,7 +724,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void SyncMyHandCardsToSystem()
     {
         int actor = PhotonNetwork.LocalPlayer.ActorNumber;
-        HandCardSelect[] cards = Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None);
+        HandCardSelect[] cards = UnityEngine.Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None);
         List<string> colorList = new List<string>();
         foreach (var c in cards) colorList.Add(c.cardColorName);
 
@@ -1192,7 +1194,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     public void EnableDiscardSelection()
     {
         Debug.Log("請選擇要棄掉的手牌");
-        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
+        foreach (var card in UnityEngine.Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
         {
             //Debug.Log("設定卡牌為 Discard 模式: " + card.cardColorName);
             card.SetMode(HandCardMode.DiscardSelection, OnHandCardChosenToDiscard);
@@ -1260,7 +1262,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         // 發新牌 + 同步
         Texture2D[] primaryColors = handCardGenerator.primaryColors;
-        Texture2D randomPrimary = primaryColors[Random.Range(0, primaryColors.Length)];
+        Texture2D randomPrimary = primaryColors[UnityEngine.Random.Range(0, primaryColors.Length)];
         GameObject newCard = Instantiate(handCardGenerator.handCardPrefab, handCardGenerator.cardContainer);
         RawImage raw = newCard.GetComponent<RawImage>();
         raw.texture = randomPrimary;
@@ -1353,7 +1355,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     private void ResetHandCardMode()
     {
-        foreach (var card in Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
+        foreach (var card in UnityEngine.Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None))
         {
             card.SetMode(HandCardMode.Normal);
         }
@@ -1592,19 +1594,35 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void CheckIfAllPlayersNoHandCards()
     {
+        bool anyHasCards = false;
+
         foreach (var player in PhotonNetwork.PlayerList)
         {
             int actor = player.ActorNumber;
 
-            //只檢查還沒出局的玩家
-            if (!eliminatedPlayers.Contains(actor))
+            //跳過出局玩家
+            if (eliminatedPlayers.Contains(actor))
+                continue;
+
+            bool hasCards = PlayerHasHandCard(actor);
+
+            if (!hasCards && !firstFinishAwarded)
             {
-                if (PlayerHasHandCard(actor))
-                {
-                    Debug.Log($"玩家 {actor} 仍有手牌，繼續遊戲");
-                    return;
-                }
+                firstFinishAwarded = true;
+                AwardFirstFinishBonus(actor);
             }
+
+            // 檢查是否還有人有手牌
+            if (hasCards)
+            {
+                anyHasCards = true;
+            }
+        }
+
+        if (anyHasCards)
+        {
+            Debug.Log("仍有玩家有手牌，繼續遊戲");
+            return;
         }
 
         Debug.Log("所有未出局玩家皆無手牌，遊戲結束！");
@@ -1619,6 +1637,55 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
     }
 
+    //每個玩家手牌清空時呼叫
+    private void CheckPlayerHandEmpty(int actorNumber)
+    {
+        if (!PhotonNetwork.IsMasterClient)
+        {
+            photonView.RPC("RPC_PlayerHandEmpty", RpcTarget.MasterClient, actorNumber);
+        }
+        else
+        {
+            RPC_PlayerHandEmpty(actorNumber);
+        }
+    }
+
+    [PunRPC]
+    private void RPC_PlayerHandEmpty(int actorNumber)
+    {
+        //第一個結束的玩家的獎勵
+        if (!firstFinishAwarded)
+        {
+            firstFinishAwarded = true;
+            AwardFirstFinishBonus(actorNumber);
+        }
+    }
+
+    private void AwardFirstFinishBonus(int actorNumber)
+    {
+        photonView.RPC("RPC_AwardFirstFinishBonus", RpcTarget.All, actorNumber);
+    }
+
+    [PunRPC]
+    private void RPC_AwardFirstFinishBonus(int actorNumber)
+    {
+        int currentGem = playerGems.ContainsKey(actorNumber) ? playerGems[actorNumber] : 0;
+        playerGems[actorNumber] = currentGem + 3;
+
+        Debug.Log($"玩家 {actorNumber} 第一個完成，獲得額外3顆寶石");
+
+        var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+        if (player != null)
+        {
+            player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable
+        {
+            { "gem", playerGems[actorNumber] }
+        });
+        }
+
+        UpdateGemUI();
+        photonView.RPC("RPC_UpdateGem", RpcTarget.All, actorNumber, playerGems[actorNumber]);
+    }
 
     public bool PlayerHasHandCard(int actorNumber)
     {
@@ -1627,6 +1694,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void EndGame()
     {
+
         foreach (var player in PhotonNetwork.PlayerList)
         {
             int gem = playerGems.ContainsKey(player.ActorNumber) ? playerGems[player.ActorNumber] : 0;
@@ -1635,6 +1703,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             { "finalGem", gem }
         });
         }
+        ExportHintClickData();
         StartCoroutine(LoadEndSceneWithDelay(1f));
     }
 
@@ -1698,6 +1767,67 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         Debug.Log("成功重新加入房間！");
         // 可依需求恢復場景狀態
     }
+
+    /*
+    -------------------------------------------------------------------------------------------------------------------------------------
+                                                    玩家遊玩資料紀錄
+    -------------------------------------------------------------------------------------------------------------------------------------
+    */
+    public void OnHintButtonClicked()//點擊提示次數
+    {
+        int actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+        photonView.RPC(nameof(RPC_RecordHintClick), RpcTarget.All, actorNumber);
+    }
+
+    [PunRPC]
+    void RPC_RecordHintClick(int actorNumber)
+    {
+        var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
+        if (player == null) return;
+
+        int clickCount = 0;
+        if (player.CustomProperties.ContainsKey("hintClickCount"))
+            clickCount = (int)player.CustomProperties["hintClickCount"];
+
+        clickCount++;
+        player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable
+        {
+            { "hintClickCount", clickCount }
+        });
+
+        Debug.Log($"玩家 {actorNumber} 點擊提示，總次數: {clickCount}");
+    }
+
+    //點擊提示次數匯出成CSV檔 存在桌面 
+    public void ExportHintClickData()
+    {
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string fileName = $"玩家遊玩資料紀錄_{timestamp}.csv";
+
+        //桌面路徑
+        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string path = Path.Combine(desktopPath, fileName);
+
+        using (StreamWriter sw = new StreamWriter(path, false, new System.Text.UTF8Encoding(true)))
+        {
+            sw.WriteLine("PlayerName,ActorNumber,提示點擊次數");
+
+            foreach (var player in PhotonNetwork.PlayerList)
+            {
+                string name = player.NickName;
+                int actorNumber = player.ActorNumber;
+                int clickCount = 0;
+
+                if (player.CustomProperties.ContainsKey("hintClickCount"))
+                    clickCount = (int)player.CustomProperties["hintClickCount"];
+
+                sw.WriteLine($"{name},{actorNumber},{clickCount}");
+            }
+        }
+
+        Debug.Log($"提示點擊紀錄已匯出到桌面：{path}");
+    }
+
 
     /*
     -------------------------------------------------------------------------------------------------------------------------------------
