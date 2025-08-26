@@ -1284,10 +1284,10 @@ function dbg(text) {
 // === Body ===
 
 var ASM_CONSTS = {
-  8091264: () => { Module['emscripten_get_now_backup'] = performance.now; },  
- 8091319: ($0) => { performance.now = function() { return $0; }; },  
- 8091367: ($0) => { performance.now = function() { return $0; }; },  
- 8091415: () => { performance.now = Module['emscripten_get_now_backup']; }
+  8095520: () => { Module['emscripten_get_now_backup'] = performance.now; },  
+ 8095575: ($0) => { performance.now = function() { return $0; }; },  
+ 8095623: ($0) => { performance.now = function() { return $0; }; },  
+ 8095671: () => { performance.now = Module['emscripten_get_now_backup']; }
 };
 
 
@@ -1644,6 +1644,18 @@ var ASM_CONSTS = {
         err(text);
       }
     }
+
+  function _DownloadCSV(fileNamePtr, contentPtr) {
+          var fileName = UTF8ToString(fileNamePtr);
+          var content = UTF8ToString(contentPtr);
+          var blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+          var link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+      }
 
   function _GetJSLoadTimeInfo(loadTimePtr) {
     loadTimePtr = (loadTimePtr >> 2);
@@ -17376,6 +17388,7 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
 }
 var wasmImports = {
+  "DownloadCSV": _DownloadCSV,
   "GetJSLoadTimeInfo": _GetJSLoadTimeInfo,
   "GetJSMemoryInfo": _GetJSMemoryInfo,
   "JS_Accelerometer_IsRunning": _JS_Accelerometer_IsRunning,
@@ -18300,6 +18313,8 @@ var dynCall_vjjjiiii = Module["dynCall_vjjjiiii"] = createExportWrapper("dynCall
 var dynCall_vjiiiii = Module["dynCall_vjiiiii"] = createExportWrapper("dynCall_vjiiiii");
 /** @type {function(...*):?} */
 var dynCall_jiiiii = Module["dynCall_jiiiii"] = createExportWrapper("dynCall_jiiiii");
+/** @type {function(...*):?} */
+var dynCall_viiiifiiiiiii = Module["dynCall_viiiifiiiiiii"] = createExportWrapper("dynCall_viiiifiiiiiii");
 /** @type {function(...*):?} */
 var dynCall_viidii = Module["dynCall_viidii"] = createExportWrapper("dynCall_viidii");
 /** @type {function(...*):?} */
@@ -20178,6 +20193,17 @@ function invoke_viidiji(index,a1,a2,a3,a4,a5,a6,a7) {
   }
 }
 
+function invoke_vji(index,a1,a2,a3) {
+  var sp = stackSave();
+  try {
+    dynCall_vji(index,a1,a2,a3);
+  } catch(e) {
+    stackRestore(sp);
+    if (!(e instanceof EmscriptenEH)) throw e;
+    _setThrew(1, 0);
+  }
+}
+
 function invoke_viiiji(index,a1,a2,a3,a4,a5,a6) {
   var sp = stackSave();
   try {
@@ -20259,17 +20285,6 @@ function invoke_iiiiiiiiiji(index,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11) {
   var sp = stackSave();
   try {
     return dynCall_iiiiiiiiiji(index,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11);
-  } catch(e) {
-    stackRestore(sp);
-    if (!(e instanceof EmscriptenEH)) throw e;
-    _setThrew(1, 0);
-  }
-}
-
-function invoke_vji(index,a1,a2,a3) {
-  var sp = stackSave();
-  try {
-    dynCall_vji(index,a1,a2,a3);
   } catch(e) {
     stackRestore(sp);
     if (!(e instanceof EmscriptenEH)) throw e;

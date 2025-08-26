@@ -8,8 +8,19 @@ using static HandCardSelect;
 using TMPro;
 using System.IO;
 using System;
+using System.Text;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+using System.Runtime.InteropServices;
+#endif
+
+
 public class GameSceneManager : MonoBehaviourPunCallbacks
 {
+#if UNITY_WEBGL && !UNITY_EDITOR
+    [DllImport("__Internal")]
+    private static extern void DownloadCSV(string filename, string content);
+#endif
     // 單例 & 狀態管理
     public static GameSceneManager Instance;
     private Coroutine currentExchangeCoroutine;
@@ -1763,8 +1774,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         });
         }
 
-        ExportHintClickData();
+        //ExportHintClickData();
+        //ExportTurnDurationsCsv();
         ExportTurnDurationsCsv();
+        ExportPlayerSummaryCsv();
         StartCoroutine(LoadEndSceneWithDelay(1f));
     }
 
@@ -1835,6 +1848,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                                                     玩家遊玩資料紀錄
     -------------------------------------------------------------------------------------------------------------------------------------
     */
+
     public void OnHintButtonClicked()//點擊提示次數
     {
         int actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
@@ -1865,57 +1879,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
         Debug.Log($"玩家 {actorNumber} 點擊提示，總次數: {clickCount}");
     }
-    public void ExportHintClickData()
-    {
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"玩家遊玩資料紀錄_{timestamp}.csv";
-
-        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        string path = Path.Combine(desktopPath, fileName);
-
-        using (StreamWriter sw = new StreamWriter(path, false, new System.Text.UTF8Encoding(true)))
-        {
-            sw.WriteLine("PlayerName,ActorNumber,提示點擊次數,最終寶石數量,總失敗次數");
-
-            foreach (var player in PhotonNetwork.PlayerList)
-            {
-                string name = player.NickName;
-                int actorNumber = player.ActorNumber;
-
-                // 提示次數
-                int clickCount = 0;
-                if (player.CustomProperties.ContainsKey("hintClickCount"))
-                    clickCount = (int)player.CustomProperties["hintClickCount"];
-
-                // 最終寶石數量
-                int finalGem = 0;
-                if (player.CustomProperties.ContainsKey("finalGem"))
-                    finalGem = (int)player.CustomProperties["finalGem"];
-                else if (playerGems.TryGetValue(actorNumber, out var localGem))
-                    finalGem = localGem;
-
-                // 總失敗次數
-                int totalFail = 0;
-                if (playerTurnFail != null && playerTurnFail.TryGetValue(actorNumber, out var failList) && failList != null)
-                {
-                    for (int i = 0; i < failList.Count; i++) totalFail += failList[i];
-                }
-                else if (failCounts != null && failCounts.TryGetValue(actorNumber, out var fc))
-                {
-                    totalFail = fc;
-                }
-                else if (player.CustomProperties.ContainsKey("totalFail"))
-                {
-                    totalFail = (int)player.CustomProperties["totalFail"];
-                }
-
-                sw.WriteLine($"{name},{actorNumber},{clickCount},{finalGem},{totalFail}");
-            }
-        }
-
-        Debug.Log($"玩家遊玩資料紀錄（含總失敗次數）已匯出到桌面：{path}");
-    }
-
     private Dictionary<int, List<float>> playerTurnDurations = new Dictionary<int, List<float>>();
 
     // 新增：每位玩家每回合提示次數（每回合一個整數）
@@ -1996,49 +1959,107 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         Debug.Log($"[TurnEnd] Actor {actorNumber} 回合#{playerTurnDurations[actorNumber].Count}: " +
                   $"Time={seconds:F2}s, Hint={hintThisTurn}, Gem={gemThisTurn}, Discard={discardThisTurn}, Fail={failThisTurn}");
     }
-
     public void ExportTurnDurationsCsv()
     {
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         string fileName = $"玩家每回合統計_{timestamp}.csv";
-        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-        string path = Path.Combine(desktopPath, fileName);
 
-        using (StreamWriter sw = new StreamWriter(path, false, new System.Text.UTF8Encoding(true)))
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("PlayerName,ActorNumber,TurnIndex,TimeUsedSeconds,UsedHint,GemSpent,Discard,Fail,GemReward");
+
+        foreach (var p in PhotonNetwork.PlayerList)
         {
-            // 新增 GemReward 欄位
-            sw.WriteLine("PlayerName,ActorNumber,TurnIndex,TimeUsedSeconds,UsedHint,GemSpent,Discard,Fail,GemReward");
+            int actor = p.ActorNumber;
+            string name = p.NickName;
 
-            foreach (var p in PhotonNetwork.PlayerList)
+            playerTurnDurations.TryGetValue(actor, out var times);
+            playerTurnHintClicks.TryGetValue(actor, out var hints);
+            playerTurnGemSpent.TryGetValue(actor, out var gemsSpent);
+            playerTurnDiscard.TryGetValue(actor, out var discards);
+            playerTurnFail.TryGetValue(actor, out var fails);
+            playerTurnGemGained.TryGetValue(actor, out var gemsGained);
+
+            if (times == null) continue;
+            int n = times.Count;
+
+            for (int i = 0; i < n; i++)
             {
-                int actor = p.ActorNumber;
-                string name = p.NickName;
+                float sec = times[i];
+                int usedHint = (hints != null && i < hints.Count) ? hints[i] : 0;
+                int gemSpent = (gemsSpent != null && i < gemsSpent.Count) ? gemsSpent[i] : 0;
+                int didDiscard = (discards != null && i < discards.Count) ? discards[i] : 0;
+                int failCount = (fails != null && i < fails.Count) ? fails[i] : 0;
+                int gemReward = (gemsGained != null && i < gemsGained.Count) ? gemsGained[i] : 0;
 
-                playerTurnDurations.TryGetValue(actor, out var times);
-                playerTurnHintClicks.TryGetValue(actor, out var hints);
-                playerTurnGemSpent.TryGetValue(actor, out var gemsSpent);
-                playerTurnDiscard.TryGetValue(actor, out var discards);
-                playerTurnFail.TryGetValue(actor, out var fails);
-                playerTurnGemGained.TryGetValue(actor, out var gemsGained);
-
-                if (times == null) continue;
-                int n = times.Count;
-
-                for (int i = 0; i < n; i++)
-                {
-                    float sec = times[i];
-                    int usedHint = (hints != null && i < hints.Count) ? hints[i] : 0;
-                    int gemSpent = (gemsSpent != null && i < gemsSpent.Count) ? gemsSpent[i] : 0;
-                    int didDiscard = (discards != null && i < discards.Count) ? discards[i] : 0;
-                    int failCount = (fails != null && i < fails.Count) ? fails[i] : 0;
-                    int gemReward = (gemsGained != null && i < gemsGained.Count) ? gemsGained[i] : 0;
-
-                    sw.WriteLine($"{name},{actor},{i + 1},{sec:F2},{usedHint},{gemSpent},{didDiscard},{failCount},{gemReward}");
-                }
+                sb.AppendLine($"{name},{actor},{i + 1},{sec:F2},{usedHint},{gemSpent},{didDiscard},{failCount},{gemReward}");
             }
         }
 
-        Debug.Log($"每回合統計（含提示/寶石消耗/棄牌/失敗/寶石獎勳）已匯出到桌面：{path}");
+#if UNITY_WEBGL && !UNITY_EDITOR
+    string bom = "\uFEFF";
+    string csvContent = bom + sb.ToString().Replace("\n", "\r\n"); // 正確換行
+    DownloadCSV(fileName, csvContent);
+#else
+        // Editor / Standalone
+        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string path = Path.Combine(desktopPath, fileName);
+        File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+        Debug.Log($"每回合統計（含提示/寶石消耗/棄牌/失敗/寶石獎勳） CSV 已匯出到桌面：{path}");
+#endif
+    }
+
+    public void ExportPlayerSummaryCsv()
+    {
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string fileName = $"玩家最終遊玩資料紀錄(提示次數/總寶石/總失敗)_{timestamp}.csv";
+
+        StringBuilder sb = new StringBuilder();
+        sb.AppendLine("PlayerName,ActorNumber,TotalUsedHint,TotalGemReward,TotalFail");
+
+        foreach (var player in PhotonNetwork.PlayerList)
+        {
+            string name = player.NickName;
+            int actorNumber = player.ActorNumber;
+
+            // 總提示次數
+            int totalHintClicks = 0;
+            if (player.CustomProperties.ContainsKey("hintClickCount"))
+                totalHintClicks = (int)player.CustomProperties["hintClickCount"];
+
+            // 最終寶石數量
+            int finalGem = 0;
+            if (player.CustomProperties.ContainsKey("finalGem"))
+                finalGem = (int)player.CustomProperties["finalGem"];
+            else if (playerGems.TryGetValue(actorNumber, out var localGem))
+                finalGem = localGem;
+
+            // 總失敗次數
+            int totalFail = 0;
+            if (playerTurnFail != null && playerTurnFail.TryGetValue(actorNumber, out var failList) && failList != null)
+            {
+                for (int i = 0; i < failList.Count; i++) totalFail += failList[i];
+            }
+            else if (failCounts != null && failCounts.TryGetValue(actorNumber, out var fc))
+            {
+                totalFail = fc;
+            }
+            else if (player.CustomProperties.ContainsKey("totalFail"))
+            {
+                totalFail = (int)player.CustomProperties["totalFail"];
+            }
+
+            sb.AppendLine($"{name},{actorNumber},{totalHintClicks},{finalGem},{totalFail}");
+        }
+#if UNITY_WEBGL && !UNITY_EDITOR
+    string bom = "\uFEFF";
+    string csvContent = bom + sb.ToString().Replace("\n", "\r\n"); // 正確換行
+    DownloadCSV(fileName, csvContent);
+#else
+        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string path = Path.Combine(desktopPath, fileName);
+        File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+        Debug.Log($"玩家最終遊玩資料紀錄(提示次數/總寶石/總失敗)已匯出到桌面：{path}");
+#endif
     }
 
 
