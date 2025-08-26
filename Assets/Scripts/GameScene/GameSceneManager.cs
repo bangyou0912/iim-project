@@ -148,7 +148,20 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         foreach (var player in PhotonNetwork.PlayerList)
         {
             playerGems[player.ActorNumber] = 3;
-            discardCounts[player.ActorNumber] = 0; 
+            discardCounts[player.ActorNumber] = 0;
+            playerTurnDurations[player.ActorNumber] = new List<float>();
+            playerTurnHintClicks[player.ActorNumber] = new List<int>();
+            currentTurnHintClicks[player.ActorNumber] = 0;
+            playerTurnGemSpent[player.ActorNumber] = new List<int>();
+            playerTurnDiscard[player.ActorNumber] = new List<int>();
+            playerTurnFail[player.ActorNumber] = new List<int>();
+            playerTurnGemGained[player.ActorNumber] = new List<int>();
+            currentTurnGemGained[player.ActorNumber] = 0;
+            currentTurnGemSpent[player.ActorNumber] = 0;
+            currentTurnDiscardCnt[player.ActorNumber] = 0;
+            currentTurnFailCnt[player.ActorNumber] = 0;
+
+            failCounts[player.ActorNumber] = 0;
             UpdateGemUI();
         }
 
@@ -860,11 +873,23 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
         else
         {
+            int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+            photonView.RPC(nameof(RPC_AddCurrentTurnFail), RpcTarget.MasterClient, actor, 1);
+
+            if (!failCounts.ContainsKey(actor)) failCounts[actor] = 0;
+            failCounts[actor]++;
             CloseConfirmPanel();
             ShowfailPanel();
         }
     }
 
+    [PunRPC]
+    void RPC_AddCurrentTurnFail(int actorNumber, int delta)
+    {
+        if (!currentTurnFailCnt.ContainsKey(actorNumber))
+            currentTurnFailCnt[actorNumber] = 0;
+        currentTurnFailCnt[actorNumber] += Mathf.Max(0, delta);
+    }
 
     private IEnumerator HandleHarmonizeSuccess(string targetColor, List<string> usedHand, List<string> usedDice)
     {
@@ -926,6 +951,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         UpdateGemUI();
         photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
         ShowGemRewardPanel(gemReward);
+
+        photonView.RPC(nameof(RPC_AddCurrentTurnGemGained), RpcTarget.MasterClient, actor, gemReward);
 
         DelayCheckIfAllPlayersNoHandCards();
         TurnManager.Instance.CompleteMyTurn();
@@ -1238,6 +1265,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         // 新增棄牌次數
         discardCounts[actor]++;
         Debug.Log($"玩家 {actor} 棄牌第 {discardCounts[actor]} 次");
+        photonView.RPC(nameof(RPC_AddCurrentTurnDiscard), RpcTarget.MasterClient, actor, 1);
         // 若已達3次，標記為出局
         if (discardCounts[actor] >= 3)
         {
@@ -1282,6 +1310,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         ResetGemSpent();
         DelayCheckIfAllPlayersNoHandCards();
         TurnManager.Instance.CompleteMyTurn();
+    }
+
+    [PunRPC]
+    void RPC_AddCurrentTurnDiscard(int actorNumber, int delta)
+    {
+        if (!currentTurnDiscardCnt.ContainsKey(actorNumber))
+            currentTurnDiscardCnt[actorNumber] = 0;
+        currentTurnDiscardCnt[actorNumber] += Mathf.Max(0, delta);
     }
 
     private IEnumerator DelayNotifyOthersEliminated(int actorNumber, float delay)
@@ -1517,6 +1553,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         UpdateGemUI(); // 顯示更新
         photonView.RPC("RPC_UpdateGem", RpcTarget.All, actor, playerGems[actor]);
 
+        photonView.RPC(nameof(RPC_AddCurrentTurnGemSpent), RpcTarget.MasterClient, actor, cost);
+
         if (!hasOpenedChooseColorPanel && gemSpentTotal >= 3)
         {
             hasOpenedChooseColorPanel = true;
@@ -1525,6 +1563,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         }
         return true;
+    }
+
+    [PunRPC]
+    void RPC_AddCurrentTurnGemSpent(int actorNumber, int delta)
+    {
+        if (!currentTurnGemSpent.ContainsKey(actorNumber))
+            currentTurnGemSpent[actorNumber] = 0;
+        currentTurnGemSpent[actorNumber] += Mathf.Max(0, delta);
     }
 
     void ShowChooseColorPanel()
@@ -1681,6 +1727,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         UpdateGemUI();
         photonView.RPC("RPC_UpdateGem", RpcTarget.All, actorNumber, playerGems[actorNumber]);
+        photonView.RPC(nameof(RPC_AddCurrentTurnGemGained), RpcTarget.MasterClient, actorNumber, 3);
     }
 
     public bool PlayerHasHandCard(int actorNumber)
@@ -1690,17 +1737,37 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void EndGame()
     {
+
+        PhotonView.Get(GameSceneManager.Instance).RPC(nameof(RPC_BeginShutdown), RpcTarget.All);
         foreach (var player in PhotonNetwork.PlayerList)
         {
-            int gem = playerGems.ContainsKey(player.ActorNumber) ? playerGems[player.ActorNumber] : 0;
-            player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable { { "finalGem", gem } });
+            int actor = player.ActorNumber;
+            int gem = playerGems.ContainsKey(actor) ? playerGems[actor] : 0;
+
+
+            int totalFail = 0;
+            if (playerTurnFail != null && playerTurnFail.TryGetValue(actor, out var failList) && failList != null)
+            {
+                for (int i = 0; i < failList.Count; i++) totalFail += failList[i];
+            }
+            else if (failCounts != null && failCounts.TryGetValue(actor, out var fc))
+            {
+                totalFail = fc; 
+            }
+
+
+            player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable
+        {
+            { "finalGem", gem },
+            { "totalFail", totalFail }
+        });
         }
 
         ExportHintClickData();
-        ExportTurnDurationsCsv(); 
-
+        ExportTurnDurationsCsv();
         StartCoroutine(LoadEndSceneWithDelay(1f));
     }
+
 
     [PunRPC]
     public void RPC_RequestEndGame()
@@ -1790,103 +1857,190 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             { "hintClickCount", clickCount }
         });
 
+        if (PhotonNetwork.IsMasterClient)
+        {
+            if (!currentTurnHintClicks.ContainsKey(actorNumber))
+                currentTurnHintClicks[actorNumber] = 0;
+            currentTurnHintClicks[actorNumber]++;
+        }
         Debug.Log($"玩家 {actorNumber} 點擊提示，總次數: {clickCount}");
     }
-
-    //點擊提示次數匯出成CSV檔 存在桌面 
     public void ExportHintClickData()
     {
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         string fileName = $"玩家遊玩資料紀錄_{timestamp}.csv";
 
-        //桌面路徑
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string path = Path.Combine(desktopPath, fileName);
 
         using (StreamWriter sw = new StreamWriter(path, false, new System.Text.UTF8Encoding(true)))
         {
-            sw.WriteLine("PlayerName,ActorNumber,提示點擊次數,最終寶石數量");
+            sw.WriteLine("PlayerName,ActorNumber,提示點擊次數,最終寶石數量,總失敗次數");
 
             foreach (var player in PhotonNetwork.PlayerList)
             {
                 string name = player.NickName;
                 int actorNumber = player.ActorNumber;
 
+                // 提示次數
                 int clickCount = 0;
                 if (player.CustomProperties.ContainsKey("hintClickCount"))
                     clickCount = (int)player.CustomProperties["hintClickCount"];
 
-                // 優先從 CustomProperties 讀取 finalGem（EndGame() 已寫入）
+                // 最終寶石數量
                 int finalGem = 0;
                 if (player.CustomProperties.ContainsKey("finalGem"))
-                {
                     finalGem = (int)player.CustomProperties["finalGem"];
-                }
-                else
+                else if (playerGems.TryGetValue(actorNumber, out var localGem))
+                    finalGem = localGem;
+
+                // 總失敗次數
+                int totalFail = 0;
+                if (playerTurnFail != null && playerTurnFail.TryGetValue(actorNumber, out var failList) && failList != null)
                 {
-                    // 若意外沒寫入（極少數情況），退而求其次用本地的 playerGems 字典
-                    if (playerGems.TryGetValue(actorNumber, out int localGem))
-                        finalGem = localGem;
+                    for (int i = 0; i < failList.Count; i++) totalFail += failList[i];
+                }
+                else if (failCounts != null && failCounts.TryGetValue(actorNumber, out var fc))
+                {
+                    totalFail = fc;
+                }
+                else if (player.CustomProperties.ContainsKey("totalFail"))
+                {
+                    totalFail = (int)player.CustomProperties["totalFail"];
                 }
 
-                sw.WriteLine($"{name},{actorNumber},{clickCount},{finalGem}");
+                sw.WriteLine($"{name},{actorNumber},{clickCount},{finalGem},{totalFail}");
             }
         }
 
-        Debug.Log($"玩家遊玩資料紀錄已匯出到桌面：{path}");
+        Debug.Log($"玩家遊玩資料紀錄（含總失敗次數）已匯出到桌面：{path}");
     }
 
     private Dictionary<int, List<float>> playerTurnDurations = new Dictionary<int, List<float>>();
 
+    // 新增：每位玩家每回合提示次數（每回合一個整數）
+    private Dictionary<int, List<int>> playerTurnHintClicks = new Dictionary<int, List<int>>();
+
+    // 新增：目前這一回合已點提示次數（回合結束會歸零）
+    private Dictionary<int, int> currentTurnHintClicks = new Dictionary<int, int>();
+
+    private Dictionary<int, List<int>> playerTurnGemSpent = new Dictionary<int, List<int>>();   // 每回合花費寶石
+    private Dictionary<int, List<int>> playerTurnDiscard = new Dictionary<int, List<int>>();   // 每回合是否棄牌(0/1)
+    private Dictionary<int, List<int>> playerTurnFail = new Dictionary<int, List<int>>();   // 每回合失敗次數
+    private Dictionary<int, int> currentTurnGemSpent = new Dictionary<int, int>();  // 當回合累積寶石消耗
+    private Dictionary<int, int> currentTurnDiscardCnt = new Dictionary<int, int>();  // 當回合棄牌次數
+    private Dictionary<int, int> currentTurnFailCnt = new Dictionary<int, int>();  // 當回合失敗次數
+    private Dictionary<int, List<int>> playerTurnGemGained = new Dictionary<int, List<int>>();// 每回合寶石獎勳（得到的寶石數量）
+    private Dictionary<int, int> currentTurnGemGained = new Dictionary<int, int>();// 當回合累積的「本回合得到的寶石數量」
+    public Dictionary<int, int> failCounts = new Dictionary<int, int>();
+
+    [PunRPC]
+    void RPC_AddCurrentTurnGemGained(int actorNumber, int delta)
+    {
+        if (!currentTurnGemGained.ContainsKey(actorNumber))
+            currentTurnGemGained[actorNumber] = 0;
+        currentTurnGemGained[actorNumber] += Mathf.Max(0, delta);
+    }
     public void RecordMyTurnDuration(float seconds)
     {
         int actor = PhotonNetwork.LocalPlayer.ActorNumber;
         // 送到 MasterClient 做統一記錄，避免多端各自存不同步
-        photonView.RPC(nameof(RPC_RecordTurnDuration), RpcTarget.MasterClient, actor, seconds);
+        PhotonView.Get(GameSceneManager.Instance).RPC(
+        nameof(RPC_RecordTurnDuration), RpcTarget.MasterClient, actor, seconds);
     }
 
     [PunRPC]
     void RPC_RecordTurnDuration(int actorNumber, float seconds)
     {
+        seconds = Mathf.Clamp(seconds, 0f, 10_000f);
+
+        // 1) 用時
         if (!playerTurnDurations.ContainsKey(actorNumber))
             playerTurnDurations[actorNumber] = new List<float>();
-
-        // 確保時間合理（非負、上限保護）
-        seconds = Mathf.Clamp(seconds, 0f, 10_000f);
         playerTurnDurations[actorNumber].Add(seconds);
 
-        Debug.Log($"[TurnTime] 玩家 {actorNumber} 第 {playerTurnDurations[actorNumber].Count} 回合用時：{seconds:F2} 秒");
+        // 2) 當回合提示次數 → 歸檔 + 清零
+        if (!playerTurnHintClicks.ContainsKey(actorNumber))
+            playerTurnHintClicks[actorNumber] = new List<int>();
+        int hintThisTurn = currentTurnHintClicks.TryGetValue(actorNumber, out var h) ? h : 0;
+        playerTurnHintClicks[actorNumber].Add(hintThisTurn);
+        currentTurnHintClicks[actorNumber] = 0;
+
+        // 3) 當回合寶石消耗 → 歸檔 + 清零
+        if (!playerTurnGemSpent.ContainsKey(actorNumber))
+            playerTurnGemSpent[actorNumber] = new List<int>();
+        int gemThisTurn = currentTurnGemSpent.TryGetValue(actorNumber, out var g) ? g : 0;
+        playerTurnGemSpent[actorNumber].Add(gemThisTurn);
+        currentTurnGemSpent[actorNumber] = 0;
+
+        // 4) 當回合是否棄牌/次數 → 歸檔 + 清零
+        if (!playerTurnDiscard.ContainsKey(actorNumber))
+            playerTurnDiscard[actorNumber] = new List<int>();
+        int discardThisTurn = currentTurnDiscardCnt.TryGetValue(actorNumber, out var d) ? d : 0;
+        playerTurnDiscard[actorNumber].Add(discardThisTurn);
+        currentTurnDiscardCnt[actorNumber] = 0;
+
+        // 5) 當回合失敗次數 → 歸檔 + 清零
+        if (!playerTurnFail.ContainsKey(actorNumber))
+            playerTurnFail[actorNumber] = new List<int>();
+        int failThisTurn = currentTurnFailCnt.TryGetValue(actorNumber, out var f) ? f : 0;
+        playerTurnFail[actorNumber].Add(failThisTurn);
+        currentTurnFailCnt[actorNumber] = 0;
+
+        if (!playerTurnGemGained.ContainsKey(actorNumber))
+            playerTurnGemGained[actorNumber] = new List<int>();
+        int gainedThisTurn = currentTurnGemGained.TryGetValue(actorNumber, out var gg) ? gg : 0;
+        playerTurnGemGained[actorNumber].Add(gainedThisTurn);
+        currentTurnGemGained[actorNumber] = 0;
+
+        Debug.Log($"[TurnEnd] Actor {actorNumber} 回合#{playerTurnDurations[actorNumber].Count}: " +
+                  $"Time={seconds:F2}s, Hint={hintThisTurn}, Gem={gemThisTurn}, Discard={discardThisTurn}, Fail={failThisTurn}");
     }
 
     public void ExportTurnDurationsCsv()
     {
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"玩家每回合用時_{timestamp}.csv";
-
+        string fileName = $"玩家每回合統計_{timestamp}.csv";
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string path = Path.Combine(desktopPath, fileName);
 
         using (StreamWriter sw = new StreamWriter(path, false, new System.Text.UTF8Encoding(true)))
         {
-            sw.WriteLine("PlayerName,ActorNumber,TurnIndex,TimeUsedSeconds");
+            // 新增 GemReward 欄位
+            sw.WriteLine("PlayerName,ActorNumber,TurnIndex,TimeUsedSeconds,UsedHint,GemSpent,Discard,Fail,GemReward");
 
             foreach (var p in PhotonNetwork.PlayerList)
             {
                 int actor = p.ActorNumber;
                 string name = p.NickName;
 
-                if (!playerTurnDurations.TryGetValue(actor, out var times)) continue;
-                for (int i = 0; i < times.Count; i++)
+                playerTurnDurations.TryGetValue(actor, out var times);
+                playerTurnHintClicks.TryGetValue(actor, out var hints);
+                playerTurnGemSpent.TryGetValue(actor, out var gemsSpent);
+                playerTurnDiscard.TryGetValue(actor, out var discards);
+                playerTurnFail.TryGetValue(actor, out var fails);
+                playerTurnGemGained.TryGetValue(actor, out var gemsGained);
+
+                if (times == null) continue;
+                int n = times.Count;
+
+                for (int i = 0; i < n; i++)
                 {
                     float sec = times[i];
-                    // i 從 0 起算，若想從 1 起算可改成 (i+1)
-                    sw.WriteLine($"{name},{actor},{i + 1},{sec:F2}");
+                    int usedHint = (hints != null && i < hints.Count) ? hints[i] : 0;
+                    int gemSpent = (gemsSpent != null && i < gemsSpent.Count) ? gemsSpent[i] : 0;
+                    int didDiscard = (discards != null && i < discards.Count) ? discards[i] : 0;
+                    int failCount = (fails != null && i < fails.Count) ? fails[i] : 0;
+                    int gemReward = (gemsGained != null && i < gemsGained.Count) ? gemsGained[i] : 0;
+
+                    sw.WriteLine($"{name},{actor},{i + 1},{sec:F2},{usedHint},{gemSpent},{didDiscard},{failCount},{gemReward}");
                 }
             }
         }
 
-        Debug.Log($"每回合用時已匯出到桌面：{path}");
+        Debug.Log($"每回合統計（含提示/寶石消耗/棄牌/失敗/寶石獎勳）已匯出到桌面：{path}");
     }
+
 
 
     /*
@@ -1900,5 +2054,14 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         enableRealtimeTips = isOn;
         //if (!isOn && TipPanel != null)
             //TipPanel.SetActive(false);
+    }
+
+    private bool isShuttingDown = false;
+    public bool IsShuttingDown => isShuttingDown;
+
+    [PunRPC]
+    void RPC_BeginShutdown()
+    {
+        isShuttingDown = true;
     }
 }

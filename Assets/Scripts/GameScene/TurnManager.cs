@@ -207,6 +207,7 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
     public void CompleteMyTurn()
     {
+        // 1) 回合時間上報
         if (wasMyTurnThisRound && myTurnStartRealtime >= 0f && GameSceneManager.Instance != null)
         {
             float used = Time.realtimeSinceStartup - myTurnStartRealtime;
@@ -214,17 +215,24 @@ public class TurnManager : MonoBehaviourPunCallbacks
         }
         wasMyTurnThisRound = false;
         myTurnStartRealtime = -1f;
+
+        // 2) 關閉UI/倒數
         if (turnCountdown != null) StopCoroutine(turnCountdown);
         endTurnButton.gameObject.SetActive(false);
         turnTimerText.gameObject.SetActive(false);
 
+        // 3) 若正在結束或已不在房內，不要再排下一回合
+        if (GameSceneManager.Instance != null && GameSceneManager.Instance.IsShuttingDown) return;
+        if (!PhotonNetwork.InRoom || !PhotonNetwork.IsConnectedAndReady) return;
+
+        // 4) 啟動下一回合（Master 自己排；Client 通知 Master）
         if (PhotonNetwork.IsMasterClient)
         {
             StartCoroutine(DelayStartNextTurn());
         }
         else
         {
-            photonView.RPC("RequestNextTurn", RpcTarget.MasterClient);
+            PhotonView.Get(TurnManager.Instance).RPC(nameof(RequestNextTurn), RpcTarget.MasterClient);
         }
     }
 

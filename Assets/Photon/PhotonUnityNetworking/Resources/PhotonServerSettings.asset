@@ -69,6 +69,11 @@ MonoBehaviour:
   - RPC_RecordHintClick
   - RPC_PlayerHandEmpty
   - RPC_RecordTurnDuration
+  - RPC_AddCurrentTurnDiscard
+  - RPC_AddCurrentTurnFail
+  - RPC_AddCurrentTurnGemSpent
+  - RPC_AddCurrentTurnGemGained
+  - RPC_BeginShutdown
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
