@@ -1806,22 +1806,35 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         using (StreamWriter sw = new StreamWriter(path, false, new System.Text.UTF8Encoding(true)))
         {
-            sw.WriteLine("PlayerName,ActorNumber,提示點擊次數");
+            sw.WriteLine("PlayerName,ActorNumber,提示點擊次數,最終寶石數量");
 
             foreach (var player in PhotonNetwork.PlayerList)
             {
                 string name = player.NickName;
                 int actorNumber = player.ActorNumber;
-                int clickCount = 0;
 
+                int clickCount = 0;
                 if (player.CustomProperties.ContainsKey("hintClickCount"))
                     clickCount = (int)player.CustomProperties["hintClickCount"];
 
-                sw.WriteLine($"{name},{actorNumber},{clickCount}");
+                // 優先從 CustomProperties 讀取 finalGem（EndGame() 已寫入）
+                int finalGem = 0;
+                if (player.CustomProperties.ContainsKey("finalGem"))
+                {
+                    finalGem = (int)player.CustomProperties["finalGem"];
+                }
+                else
+                {
+                    // 若意外沒寫入（極少數情況），退而求其次用本地的 playerGems 字典
+                    if (playerGems.TryGetValue(actorNumber, out int localGem))
+                        finalGem = localGem;
+                }
+
+                sw.WriteLine($"{name},{actorNumber},{clickCount},{finalGem}");
             }
         }
 
-        Debug.Log($"提示點擊紀錄已匯出到桌面：{path}");
+        Debug.Log($"玩家遊玩資料紀錄已匯出到桌面：{path}");
     }
 
 
