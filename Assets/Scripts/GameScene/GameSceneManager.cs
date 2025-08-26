@@ -1238,13 +1238,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         // 新增棄牌次數
         discardCounts[actor]++;
         Debug.Log($"玩家 {actor} 棄牌第 {discardCounts[actor]} 次");
-        
-        bool isEliminated = false;
         // 若已達3次，標記為出局
         if (discardCounts[actor] >= 3)
         {
-            isEliminated = true;
-
             // 加入本地列表
             if (!eliminatedPlayers.Contains(actor))
                 EliminatePlayer(actor);
