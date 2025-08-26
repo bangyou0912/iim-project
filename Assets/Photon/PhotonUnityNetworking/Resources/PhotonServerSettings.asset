@@ -68,6 +68,7 @@ MonoBehaviour:
   - RPC_AwardFirstFinishBonus
   - RPC_RecordHintClick
   - RPC_PlayerHandEmpty
+  - RPC_RecordTurnDuration
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

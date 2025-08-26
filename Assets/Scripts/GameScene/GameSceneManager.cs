@@ -1690,16 +1690,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
     public void EndGame()
     {
-
         foreach (var player in PhotonNetwork.PlayerList)
         {
             int gem = playerGems.ContainsKey(player.ActorNumber) ? playerGems[player.ActorNumber] : 0;
-            player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable
-        {
-            { "finalGem", gem }
-        });
+            player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable { { "finalGem", gem } });
         }
+
         ExportHintClickData();
+        ExportTurnDurationsCsv(); 
+
         StartCoroutine(LoadEndSceneWithDelay(1f));
     }
 
@@ -1835,6 +1834,58 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         }
 
         Debug.Log($"玩家遊玩資料紀錄已匯出到桌面：{path}");
+    }
+
+    private Dictionary<int, List<float>> playerTurnDurations = new Dictionary<int, List<float>>();
+
+    public void RecordMyTurnDuration(float seconds)
+    {
+        int actor = PhotonNetwork.LocalPlayer.ActorNumber;
+        // 送到 MasterClient 做統一記錄，避免多端各自存不同步
+        photonView.RPC(nameof(RPC_RecordTurnDuration), RpcTarget.MasterClient, actor, seconds);
+    }
+
+    [PunRPC]
+    void RPC_RecordTurnDuration(int actorNumber, float seconds)
+    {
+        if (!playerTurnDurations.ContainsKey(actorNumber))
+            playerTurnDurations[actorNumber] = new List<float>();
+
+        // 確保時間合理（非負、上限保護）
+        seconds = Mathf.Clamp(seconds, 0f, 10_000f);
+        playerTurnDurations[actorNumber].Add(seconds);
+
+        Debug.Log($"[TurnTime] 玩家 {actorNumber} 第 {playerTurnDurations[actorNumber].Count} 回合用時：{seconds:F2} 秒");
+    }
+
+    public void ExportTurnDurationsCsv()
+    {
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string fileName = $"玩家每回合用時_{timestamp}.csv";
+
+        string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        string path = Path.Combine(desktopPath, fileName);
+
+        using (StreamWriter sw = new StreamWriter(path, false, new System.Text.UTF8Encoding(true)))
+        {
+            sw.WriteLine("PlayerName,ActorNumber,TurnIndex,TimeUsedSeconds");
+
+            foreach (var p in PhotonNetwork.PlayerList)
+            {
+                int actor = p.ActorNumber;
+                string name = p.NickName;
+
+                if (!playerTurnDurations.TryGetValue(actor, out var times)) continue;
+                for (int i = 0; i < times.Count; i++)
+                {
+                    float sec = times[i];
+                    // i 從 0 起算，若想從 1 起算可改成 (i+1)
+                    sw.WriteLine($"{name},{actor},{i + 1},{sec:F2}");
+                }
+            }
+        }
+
+        Debug.Log($"每回合用時已匯出到桌面：{path}");
     }
 
 

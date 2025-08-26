@@ -26,6 +26,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
     [Tooltip("每回合持續時間（秒）")]
     public float turnDuration = 10f;
     private float timeRemaining = 0f;
+    private float myTurnStartRealtime = -1f;
+    private bool wasMyTurnThisRound = false;
 
     //UI 元件：回合控制按鈕與計時
     public Button endTurnButton;
@@ -121,6 +123,8 @@ public class TurnManager : MonoBehaviourPunCallbacks
         if (noticeCoroutine != null) StopCoroutine(noticeCoroutine);
         if (isMyTurn)
         {
+            myTurnStartRealtime = Time.realtimeSinceStartup;
+            wasMyTurnThisRound = true;
             // 在自己回合開始時重置寶石花費與自選色狀態
             if (GameSceneManager.Instance != null)
             {
@@ -149,8 +153,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
                 turnTimerText.gameObject.SetActive(false);
             }
         }
-        // 顯示提示圖
-        noticeCoroutine = StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
+        else
+        {
+            wasMyTurnThisRound = false;
+            myTurnStartRealtime = -1f;
+        }
+            // 顯示提示圖
+            noticeCoroutine = StartCoroutine(ShowTurnNoticeWithDelay(actorNumber));
 
         if (currentTurnPlayerNameText != null)
         {
@@ -198,6 +207,13 @@ public class TurnManager : MonoBehaviourPunCallbacks
 
     public void CompleteMyTurn()
     {
+        if (wasMyTurnThisRound && myTurnStartRealtime >= 0f && GameSceneManager.Instance != null)
+        {
+            float used = Time.realtimeSinceStartup - myTurnStartRealtime;
+            GameSceneManager.Instance.RecordMyTurnDuration(used);
+        }
+        wasMyTurnThisRound = false;
+        myTurnStartRealtime = -1f;
         if (turnCountdown != null) StopCoroutine(turnCountdown);
         endTurnButton.gameObject.SetActive(false);
         turnTimerText.gameObject.SetActive(false);
