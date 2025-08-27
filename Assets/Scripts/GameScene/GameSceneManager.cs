@@ -1048,7 +1048,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         // 移動到中心
         float t = 0f;
-        float moveDuration = 1f;
+        float moveDuration = 2f;
         while (t < moveDuration)
         {
             t += Time.deltaTime;
@@ -1074,7 +1074,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         else
             resultCircle.GetComponent<Image>().color = Color.white; // 若找不到圖片則白色
 
-        yield return new WaitForSeconds(1.5f); // 保留 1.5 秒
+        yield return new WaitForSeconds(2f); 
         Destroy(resultCircle);
     }
 
@@ -1950,7 +1950,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string fileName = $"玩家每回合統計_{timestamp}.csv";
 
         var sb = new StringBuilder();
-        sb.AppendLine("PlayerName,ActorNumber,TurnIndex,TimeUsedSeconds,UsedHint,GemSpent,Discard,Fail,GemReward");
+        sb.AppendLine("玩家名稱,玩家編號,回合,回合用時(秒),查看提示次數,花費寶石,棄牌次數,失敗次數,寶石獎勵");
 
         foreach (var p in PhotonNetwork.PlayerList)
         {
@@ -2024,7 +2024,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string fileName = $"玩家最終遊玩資料紀錄_{timestamp}.csv";
 
         var sb = new StringBuilder();
-        sb.AppendLine("PlayerName,ActorNumber,TotalUsedHint,TotalGemReward,TotalFail");
+        sb.AppendLine("玩家名稱,玩家編號,查看提示總次數,最終寶石數,總失敗次數");
 
         foreach (var player in PhotonNetwork.PlayerList)
         {
