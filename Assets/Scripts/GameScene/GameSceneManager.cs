@@ -26,7 +26,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     private Coroutine currentExchangeCoroutine;
     public bool isWhiteCardExchangeInProgress = false;
     private bool hasOpenedChooseColorPanel = false;
-    private bool firstFinishAwarded = false; //紀錄是否已有人出局
+    private bool firstFinishAwarded = false;
     private bool hasSynced = false;
     private int gemSpentTotal = 0;
     private Dictionary<string, List<List<string>>> colorMixingRules = new Dictionary<string, List<List<string>>>
@@ -1659,10 +1659,9 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             bool hasCards = PlayerHasHandCard(actor);
 
-            if (!hasCards && !firstFinishAwarded)
+            if (hasCards == false  && firstFinishAwarded == false)
             {
-                firstFinishAwarded = true;
-                AwardFirstFinishBonus(actor);
+                 AwardFirstFinishBonus(actor); 
             }
 
             // 檢查是否還有人有手牌
@@ -1722,6 +1721,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void RPC_AwardFirstFinishBonus(int actorNumber)
     {
+        firstFinishAwarded = true;
         int currentGem = playerGems.ContainsKey(actorNumber) ? playerGems[actorNumber] : 0;
         playerGems[actorNumber] = currentGem + 3;
 
