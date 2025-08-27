@@ -1,79 +1,93 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
-using System.Collections;
-using System.Collections.Generic;
+using System.Text;
 
+/// <summary>
+/// 用來把 CSV 內容上傳到 Google 試算表（透過 Google Apps Script Web App）
+/// 用法：
+/// GoogleSheetUploader.Instance.UploadCsv("玩家每回合統計", csvString);
+/// </summary>
 public class GoogleSheetUploader : MonoBehaviour
 {
-    string sheetURL = "https://script.google.com/macros/s/AKfycbys_1vx9qOWH_A39nCx-NUvp83LOing8vP5qV3XTSKn098WofO31KhgyuCds2QK0olFCg/exec";
+    public static GoogleSheetUploader Instance;
 
-    public void UploadPlayerData(
-        string playerName, int actorNumber, int turnIndex, float timeUsed,
-        int hintClickCount, bool discarded, int failCount, int gemSpent,
-        int gemReward, int finalGems)
+    [Header("Apps Script Web App URL")]
+    [Tooltip("將你部署後的 Apps Script Web App URL 填在這裡（類似 https://script.google.com/macros/s/XXXXX/exec ）")]
+    public string webAppUrl = "https://script.google.com/macros/s/AKfycbxB8nsFuye4jZ6B_Oihz39cpoDvZ3jx1yEO1bwx3uSBUeGspzGoPBGJhyC0uaC4AsWrdA/exec";
+
+    [Header("Spreadsheet 設定（伺服端也可覆寫）")]
+    [Tooltip("可留空，若留空則由 Apps Script 端使用預設常數 SPREADSHEET_ID")]
+    public string spreadsheetId = "";
+
+    private void Awake()
     {
-        Dictionary<string, object> data = new Dictionary<string, object>
-        {
-            { "playerName", playerName },
-            { "actorNumber", actorNumber },
-            { "turnIndex", turnIndex },
-            { "timeUsed", timeUsed },
-            { "hintClickCount", hintClickCount },
-            { "discarded", discarded ? "是" : "否" },
-            { "failCount", failCount },
-            { "gemSpent", gemSpent },
-            { "gemReward", gemReward },
-            { "finalGems", finalGems }
-        };
-
-        StartCoroutine(PostData(sheetURL, data));
+        if (Instance == null) { Instance = this; DontDestroyOnLoad(gameObject); }
+        else { Destroy(gameObject); }
     }
 
-    IEnumerator PostData(string url, Dictionary<string, object> data)
+    /// <summary>
+    /// 上傳 CSV 到 Google Sheets。
+    /// sheetBaseName：希望建立/使用的工作表分頁名稱（若已存在，伺服端會自動另開新分頁）。
+    /// csvContent：你的 CSV 原文（含表頭、換行）。
+    /// </summary>
+    public void UploadCsv(string sheetBaseName, string csvContent)
     {
-        string json = JsonUtility.ToJson(new SerializationHelper(data));
-        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
-
-        UnityWebRequest request = new UnityWebRequest(url, "POST");
-        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-        request.downloadHandler = new DownloadHandlerBuffer();
-        request.SetRequestHeader("Content-Type", "application/json");
-
-        yield return request.SendWebRequest();
-
-        if (request.result == UnityWebRequest.Result.Success)
-            Debug.Log("成功上傳: " + request.downloadHandler.text);
-        else
-            Debug.LogError("上傳失敗: " + request.error);
+        StartCoroutine(CoUploadCsv(sheetBaseName, csvContent));
     }
 
-    // Helper class to serialize Dictionary
-    [System.Serializable]
-    public class SerializationHelper
+    private IEnumerator CoUploadCsv(string sheetBaseName, string csvContent)
     {
-        public string playerName;
-        public int actorNumber;
-        public int turnIndex;
-        public float timeUsed;
-        public int hintClickCount;
-        public string discarded;
-        public int failCount;
-        public int gemSpent;
-        public int gemReward;
-        public int finalGems;
-
-        public SerializationHelper(Dictionary<string, object> dict)
+        if (string.IsNullOrEmpty(webAppUrl))
         {
-            playerName = dict["playerName"].ToString();
-            actorNumber = (int)dict["actorNumber"];
-            turnIndex = (int)dict["turnIndex"];
-            timeUsed = (float)dict["timeUsed"];
-            hintClickCount = (int)dict["hintClickCount"];
-            discarded = dict["discarded"].ToString();
-            failCount = (int)dict["failCount"];
-            gemSpent = (int)dict["gemSpent"];
-            gemReward = (int)dict["gemReward"];
-            finalGems = (int)dict["finalGems"];
+            Debug.LogError("[GoogleSheetUploader] webAppUrl 尚未設定。");
+            yield break;
         }
+
+        // 盡量統一 \n，避免不同平台換行差異
+        string csvNorm = (csvContent ?? "").Replace("\r\n", "\n");
+
+        // 改用表單避免 CORS 預檢
+        WWWForm form = new WWWForm();
+        form.AddField("sheetBaseName", string.IsNullOrEmpty(sheetBaseName) ? "Upload" : sheetBaseName);
+        form.AddField("csv", csvNorm);
+        if (!string.IsNullOrEmpty(spreadsheetId))
+            form.AddField("spreadsheetId", spreadsheetId);
+
+        using (UnityWebRequest req = UnityWebRequest.Post(webAppUrl, form))
+        {
+            // 小提醒：WWWForm 會自動把 Content-Type 設為 multipart/form-data；
+            // 也能改用 application/x-www-form-urlencoded（更保險），如下兩行擇一：
+            // var bytes = Encoding.UTF8.GetBytes($"sheetBaseName={UnityWebRequest.EscapeURL(sheetBaseName)}&csv={UnityWebRequest.EscapeURL(csvNorm)}&spreadsheetId={UnityWebRequest.EscapeURL(spreadsheetId)}");
+            // var req = new UnityWebRequest(webAppUrl, "POST") { uploadHandler = new UploadHandlerRaw(bytes), downloadHandler = new DownloadHandlerBuffer() };
+            // req.SetRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+
+            req.downloadHandler = new DownloadHandlerBuffer();
+
+            yield return req.SendWebRequest();
+
+#if UNITY_2020_2_OR_NEWER
+            bool isError = req.result != UnityWebRequest.Result.Success;
+#else
+        bool isError = req.isNetworkError || req.isHttpError;
+#endif
+            if (isError)
+            {
+                Debug.LogError($"[GoogleSheetUploader] 上傳失敗：{req.responseCode} {req.error}\n{req.downloadHandler.text}");
+            }
+            else
+            {
+                Debug.Log($"[GoogleSheetUploader] 上傳成功：{req.downloadHandler.text}");
+            }
+        }
+    }
+
+
+    [System.Serializable]
+    private class UploadPayload
+    {
+        public string sheetBaseName;   // 想要的分頁基底名稱
+        public string csv;             // CSV 內容
+        public string spreadsheetId;   // 可選，若空則使用伺服端常數
     }
 }

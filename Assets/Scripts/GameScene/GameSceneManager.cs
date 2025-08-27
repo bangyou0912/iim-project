@@ -1773,9 +1773,6 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             { "totalFail", totalFail }
         });
         }
-
-        //ExportHintClickData();
-        //ExportTurnDurationsCsv();
         ExportTurnDurationsCsv();
         ExportPlayerSummaryCsv();
         StartCoroutine(LoadEndSceneWithDelay(1f));
@@ -1961,10 +1958,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     }
     public void ExportTurnDurationsCsv()
     {
+        if (!PhotonNetwork.IsMasterClient) return;
+
         string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
         string fileName = $"玩家每回合統計_{timestamp}.csv";
 
-        StringBuilder sb = new StringBuilder();
+        var sb = new StringBuilder();
         sb.AppendLine("PlayerName,ActorNumber,TurnIndex,TimeUsedSeconds,UsedHint,GemSpent,Discard,Fail,GemReward");
 
         foreach (var p in PhotonNetwork.PlayerList)
@@ -1995,25 +1994,50 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             }
         }
 
+        // ====== 先上傳到 Google Sheets ======
+        try
+        {
+            // 輕度正規化換行；Apps Script 的 Utilities.parseCsv 兩者都可，但這裡統一為 \n
+            string csvForSheet = sb.ToString().Replace("\r\n", "\n");
+
+            // 分頁名稱：時間戳 + （可選）房名
+            string baseTabName = $"玩家每回合統計_{timestamp}";
+            if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null && !string.IsNullOrEmpty(PhotonNetwork.CurrentRoom.Name))
+                baseTabName += $"_{PhotonNetwork.CurrentRoom.Name}";
+
+            if (GoogleSheetUploader.Instance != null)
+                GoogleSheetUploader.Instance.UploadCsv(baseTabName, csvForSheet);
+            else
+                Debug.LogWarning("[ExportTurnDurationsCsv] 找不到 GoogleSheetUploader.Instance，略過上傳。");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[ExportTurnDurationsCsv] 上傳 Google Sheet 失敗：{ex}");
+        }
+
+        // ====== 照舊：匯出檔案 ======
 #if UNITY_WEBGL && !UNITY_EDITOR
     string bom = "\uFEFF";
-    string csvContent = bom + sb.ToString().Replace("\n", "\r\n"); // 正確換行
+    string csvContent = bom + sb.ToString().Replace("\n", "\r\n"); // WebGL 下載用 CRLF
     DownloadCSV(fileName, csvContent);
 #else
-        // Editor / Standalone
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string path = Path.Combine(desktopPath, fileName);
+        // 桌面檔案保留 UTF-8 BOM（Windows Excel 友善）
         File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
-        Debug.Log($"每回合統計（含提示/寶石消耗/棄牌/失敗/寶石獎勳） CSV 已匯出到桌面：{path}");
+        Debug.Log($"每回合統計（含提示/寶石消耗/棄牌/失敗/寶石獎勳）CSV 已匯出到桌面：{path}");
 #endif
     }
 
+
     public void ExportPlayerSummaryCsv()
     {
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"玩家最終遊玩資料紀錄(提示次數/總寶石/總失敗)_{timestamp}.csv";
+        if (!PhotonNetwork.IsMasterClient) return;
 
-        StringBuilder sb = new StringBuilder();
+        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string fileName = $"玩家最終遊玩資料紀錄_{timestamp}.csv";
+
+        var sb = new StringBuilder();
         sb.AppendLine("PlayerName,ActorNumber,TotalUsedHint,TotalGemReward,TotalFail");
 
         foreach (var player in PhotonNetwork.PlayerList)
@@ -2033,7 +2057,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             else if (playerGems.TryGetValue(actorNumber, out var localGem))
                 finalGem = localGem;
 
-            // 總失敗次數
+            // 總失敗次數（優先使用回合累加，其次 failCounts，再其次 customProperties）
             int totalFail = 0;
             if (playerTurnFail != null && playerTurnFail.TryGetValue(actorNumber, out var failList) && failList != null)
             {
@@ -2050,9 +2074,30 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
             sb.AppendLine($"{name},{actorNumber},{totalHintClicks},{finalGem},{totalFail}");
         }
+
+        // ====== 先上傳到 Google Sheets ======
+        try
+        {
+            string csvForSheet = sb.ToString().Replace("\r\n", "\n");
+
+            string baseTabName = $"玩家最終遊玩資料_{timestamp}";
+            if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null && !string.IsNullOrEmpty(PhotonNetwork.CurrentRoom.Name))
+                baseTabName += $"_{PhotonNetwork.CurrentRoom.Name}";
+
+            if (GoogleSheetUploader.Instance != null)
+                GoogleSheetUploader.Instance.UploadCsv(baseTabName, csvForSheet);
+            else
+                Debug.LogWarning("[ExportPlayerSummaryCsv] 找不到 GoogleSheetUploader.Instance，略過上傳。");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[ExportPlayerSummaryCsv] 上傳 Google Sheet 失敗：{ex}");
+        }
+
+        // ====== 照舊：匯出檔案 ======
 #if UNITY_WEBGL && !UNITY_EDITOR
     string bom = "\uFEFF";
-    string csvContent = bom + sb.ToString().Replace("\n", "\r\n"); // 正確換行
+    string csvContent = bom + sb.ToString().Replace("\n", "\r\n"); // WebGL 下載用 CRLF
     DownloadCSV(fileName, csvContent);
 #else
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
@@ -2061,6 +2106,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         Debug.Log($"玩家最終遊玩資料紀錄(提示次數/總寶石/總失敗)已匯出到桌面：{path}");
 #endif
     }
+
 
 
 
