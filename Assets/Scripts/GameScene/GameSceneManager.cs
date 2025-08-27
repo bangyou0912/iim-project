@@ -192,7 +192,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         publicCardPool.Clear();
 
         string[] secondaryColorNames = { "紅", "綠", "藍" };
-        string[] tertiaryColorNames = { "紫", "橙", "青綠", "黃綠", "朱紅", "藍綠" };
+        string[] tertiaryColorNames = { "紫", "橙", "青綠", "黃綠", "朱紅", "藍綠","青藍" };
 
         foreach (var name in secondaryColorNames)
             AddToPoolByName(name, 3);
@@ -869,12 +869,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         {
             CloseConfirmPanel();
             List<string> recipe = colorMixingRules[targetColor][0];
-            List<Color> componentColors = new List<Color>();
-            foreach (var name in recipe)
-                componentColors.Add(ColorFromName(name));
-
-            Color resultColor = ColorFromName(targetColor);
-            yield return StartCoroutine(PlayMixCoroutine(componentColors, resultColor));
+            yield return StartCoroutine(PlayMixCoroutine(recipe, targetColor));
         }
 
         // 混色動畫播完後才執行結果邏輯
@@ -1021,22 +1016,28 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         return false;
     }
-    private IEnumerator PlayMixCoroutine(List<Color> componentColors, Color resultColor)//顏色合成動畫
+    private IEnumerator PlayMixCoroutine(List<string> componentNames, string resultName)
     {
         List<GameObject> circles = new List<GameObject>();
         Vector3[] startPositions;
 
-        if (componentColors.Count == 2)
+        if (componentNames.Count == 2)
             startPositions = new Vector3[] { new Vector3(-200, 0, 0), new Vector3(200, 0, 0) };
         else // 3色
             startPositions = new Vector3[] { new Vector3(-200, -100, 0), new Vector3(200, -100, 0), new Vector3(0, 200, 0) };
 
-        for (int i = 0; i < componentColors.Count; i++)
+        // 播放三原色圖片動畫
+        for (int i = 0; i < componentNames.Count; i++)
         {
             var circle = Instantiate(colorCirclePrefab, canvasTransform);
             var image = circle.GetComponent<Image>();
-            Color c = componentColors[i];
-            c.a = 0.5f; // 半透明
+
+            // 讀取三原色圖片
+            Sprite sprite = Resources.Load<Sprite>($"colorCircle/{componentNames[i]}");
+            if (sprite != null) image.sprite = sprite;
+
+            Color c = Color.white;
+            c.a = 0.8f; //稍微透明
             image.color = c;
 
             var rt = circle.GetComponent<RectTransform>();
@@ -1057,41 +1058,26 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             yield return null;
         }
 
-        // 混合結果
+        // 移除中間動畫
         foreach (var c in circles)
             Destroy(c);
 
+        // 顯示最終結果圖片
         var resultCircle = Instantiate(colorCirclePrefab, canvasTransform);
         RectTransform rtresult = resultCircle.GetComponent<RectTransform>();
         rtresult.anchoredPosition = Vector3.zero;
         rtresult.localScale = Vector3.one * 1.5f;
-        resultCircle.GetComponent<Image>().color = resultColor;
+
+        Sprite resultSprite = Resources.Load<Sprite>($"colorCircle/{resultName}");
+        if (resultSprite != null)
+            resultCircle.GetComponent<Image>().sprite = resultSprite;
+        else
+            resultCircle.GetComponent<Image>().color = Color.white; // 若找不到圖片則白色
 
         yield return new WaitForSeconds(1.5f); // 保留 1.5 秒
         Destroy(resultCircle);
     }
 
-    // 將名稱轉成 Color
-    private Color ColorFromName(string colorName)
-    {
-        switch (colorName)
-        {
-            case "紅": return new Color(1f, 0f, 0f);
-            case "藍": return new Color(0f, 0f, 1f);
-            case "綠": return new Color(0f, 1f, 0f);
-            case "紫": return new Color(1f, 0f, 1f);   // 洋紅+洋紅+青
-            case "朱紅": return new Color(1f, 0.333f, 0.667f);  // 洋紅+洋紅+黃
-            case "黃綠": return new Color(0.667f, 1f, 0.333f);  // 青+黃+黃
-            case "青藍": return new Color(0.333f, 0.667f, 1f);  // 青+青+洋紅
-            case "橙": return new Color(1f, 0.667f, 0.333f);  // 洋紅+黃+黃
-            case "藍綠": return new Color(0.333f, 1f, 0.8f);  // 黃+青+青
-            case "黑": return new Color(0f, 0f, 0f); // 洋紅+青+黃
-            case "洋紅": return new Color(1f, 0.1f, 0.8f);
-            case "青": return new Color(0f, 0.6f, 1f);
-            case "黃": return new Color(1f, 1f, 0f);
-            default: return Color.white;
-        }
-    }
     /*
     public void HighlightMatchHandCards(string targetColor)
     {
