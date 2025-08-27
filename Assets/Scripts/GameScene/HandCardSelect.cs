@@ -81,7 +81,7 @@ public class HandCardSelect : MonoBehaviour, IPointerClickHandler, IPointerEnter
                 break;
 
             case HandCardMode.DiscardSelection:
-                var allCards = FindObjectsOfType<HandCardSelect>();
+                var allCards = Object.FindObjectsByType<HandCardSelect>(FindObjectsSortMode.None);
                 foreach (var card in allCards)
                 {
                     if (card != this)
