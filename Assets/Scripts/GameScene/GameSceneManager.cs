@@ -1023,21 +1023,20 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
 
         if (componentNames.Count == 2)
             startPositions = new Vector3[] { new Vector3(-200, 0, 0), new Vector3(200, 0, 0) };
-        else // 3色
+        else
             startPositions = new Vector3[] { new Vector3(-200, -100, 0), new Vector3(200, -100, 0), new Vector3(0, 200, 0) };
 
-        // 播放三原色圖片動畫
+        // 生成三原色圖片
         for (int i = 0; i < componentNames.Count; i++)
         {
             var circle = Instantiate(colorCirclePrefab, canvasTransform);
             var image = circle.GetComponent<Image>();
 
-            // 讀取三原色圖片
             Sprite sprite = Resources.Load<Sprite>($"colorCircle/{componentNames[i]}");
             if (sprite != null) image.sprite = sprite;
 
             Color c = Color.white;
-            c.a = 0.8f; //稍微透明
+            c.a = 0.8f; // 初始透明度
             image.color = c;
 
             var rt = circle.GetComponent<RectTransform>();
@@ -1058,23 +1057,55 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             yield return null;
         }
 
-        // 移除中間動畫
+        // 生成結果圖片，與三張圖疊在一起，透明度 0
+        var resultCircle = Instantiate(colorCirclePrefab, canvasTransform);
+        RectTransform rtResult = resultCircle.GetComponent<RectTransform>();
+        rtResult.anchoredPosition = Vector3.zero;
+        rtResult.localScale = Vector3.one;
+
+        Sprite resultSprite = Resources.Load<Sprite>($"colorCircle/{resultName}");
+        var resultImage = resultCircle.GetComponent<Image>();
+        if (resultSprite != null)
+            resultImage.sprite = resultSprite;
+        else
+            resultImage.color = Color.white;
+
+        // 初始結果圖片透明
+        Color resultCol = resultImage.color;
+        resultCol.a = 0f;
+        resultImage.color = resultCol;
+
+        // 同時淡出三張圖 & 淡入結果圖
+        float blendDuration = 0.5f;
+        float blendT = 0f;
+        while (blendT < blendDuration)
+        {
+            blendT += Time.deltaTime;
+            float alphaOut = Mathf.Lerp(0.8f, 0f, blendT / blendDuration);
+            float alphaIn = Mathf.Lerp(0f, 1f, blendT / blendDuration);
+
+            // 三張圖淡出
+            foreach (var c in circles)
+            {
+                var img = c.GetComponent<Image>();
+                Color col = img.color;
+                col.a = alphaOut;
+                img.color = col;
+            }
+
+            // 結果圖淡入
+            Color colResult = resultImage.color;
+            colResult.a = alphaIn;
+            resultImage.color = colResult;
+
+            yield return null;
+        }
+
+        // 移除三張圖，留下結果圖
         foreach (var c in circles)
             Destroy(c);
 
-        // 顯示最終結果圖片
-        var resultCircle = Instantiate(colorCirclePrefab, canvasTransform);
-        RectTransform rtresult = resultCircle.GetComponent<RectTransform>();
-        rtresult.anchoredPosition = Vector3.zero;
-        rtresult.localScale = Vector3.one * 1.5f;
-
-        Sprite resultSprite = Resources.Load<Sprite>($"colorCircle/{resultName}");
-        if (resultSprite != null)
-            resultCircle.GetComponent<Image>().sprite = resultSprite;
-        else
-            resultCircle.GetComponent<Image>().color = Color.white; // 若找不到圖片則白色
-
-        yield return new WaitForSeconds(2f); 
+        yield return new WaitForSeconds(2f);
         Destroy(resultCircle);
     }
 
