@@ -1977,8 +1977,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         if (!PhotonNetwork.IsMasterClient) return;
 
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"玩家每回合統計_{timestamp}.csv";
+        string timestamp = DateTime.Now.ToString("MMdd_HHmm");
+        string fileName = $"{timestamp}_回合數據.csv";
 
         var sb = new StringBuilder();
         sb.AppendLine("玩家名稱,玩家編號,回合,回合用時(秒),查看提示次數,花費寶石,棄牌次數,失敗次數,寶石獎勵");
@@ -2018,7 +2018,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             string csvForSheet = sb.ToString().Replace("\r\n", "\n");
 
             // 分頁名稱：時間戳 + （可選）房名
-            string baseTabName = $"玩家每回合統計_{timestamp}";
+            string baseTabName = $"{timestamp}_回合數據";
             if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null && !string.IsNullOrEmpty(PhotonNetwork.CurrentRoom.Name))
                 baseTabName += $"_{PhotonNetwork.CurrentRoom.Name}";
 
@@ -2042,7 +2042,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string path = Path.Combine(desktopPath, fileName);
         // 桌面檔案保留 UTF-8 BOM（Windows Excel 友善）
         File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
-        Debug.Log($"每回合統計（含提示/寶石消耗/棄牌/失敗/寶石獎勳）CSV 已匯出到桌面：{path}");
+        Debug.Log($"回合數據已匯出到桌面：{path}");
 #endif
     }
 
@@ -2051,8 +2051,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         if (!PhotonNetwork.IsMasterClient) return;
 
-        string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        string fileName = $"玩家最終遊玩資料紀錄_{timestamp}.csv";
+        string timestamp = DateTime.Now.ToString("MMdd_HHmm");
+        string fileName = $"{timestamp}_結算數據.csv";
 
         var sb = new StringBuilder();
         sb.AppendLine("玩家名稱,玩家編號,查看提示總次數,最終寶石數,總失敗次數");
@@ -2097,7 +2097,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         {
             string csvForSheet = sb.ToString().Replace("\r\n", "\n");
 
-            string baseTabName = $"玩家最終遊玩資料_{timestamp}";
+            string baseTabName = $"{timestamp}_結算數據";
             if (PhotonNetwork.InRoom && PhotonNetwork.CurrentRoom != null && !string.IsNullOrEmpty(PhotonNetwork.CurrentRoom.Name))
                 baseTabName += $"_{PhotonNetwork.CurrentRoom.Name}";
 
@@ -2120,7 +2120,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         string path = Path.Combine(desktopPath, fileName);
         File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
-        Debug.Log($"玩家最終遊玩資料紀錄(提示次數/總寶石/總失敗)已匯出到桌面：{path}");
+        Debug.Log($"結算數據已匯出到桌面：{path}");
 #endif
     }
 
