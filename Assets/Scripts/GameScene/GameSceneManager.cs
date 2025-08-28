@@ -1707,7 +1707,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     }
 
     //每個玩家手牌清空時呼叫
-    private void CheckPlayerHandEmpty(int actorNumber)
+    /*private void CheckPlayerHandEmpty(int actorNumber)
     {
         if (!PhotonNetwork.IsMasterClient)
         {
@@ -1729,7 +1729,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             AwardFirstFinishBonus(actorNumber);
         }
     }
-
+    */
     private void AwardFirstFinishBonus(int actorNumber)
     {
         photonView.RPC("RPC_AwardFirstFinishBonus", RpcTarget.All, actorNumber);
@@ -1738,6 +1738,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     [PunRPC]
     private void RPC_AwardFirstFinishBonus(int actorNumber)
     {
+        if (firstFinishAwarded == true) return;
         firstFinishAwarded = true;
         int currentGem = playerGems.ContainsKey(actorNumber) ? playerGems[actorNumber] : 0;
         playerGems[actorNumber] = currentGem + 3;
@@ -1753,9 +1754,10 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         });
         }
 
-        UpdateGemUI();
-        photonView.RPC("RPC_UpdateGem", RpcTarget.All, actorNumber, playerGems[actorNumber]);
+        //UpdateGemUI();
         photonView.RPC(nameof(RPC_AddCurrentTurnGemGained), RpcTarget.MasterClient, actorNumber, 3);
+        photonView.RPC("RPC_UpdateGem", RpcTarget.All, actorNumber, playerGems[actorNumber]);
+
     }
 
     public bool PlayerHasHandCard(int actorNumber)
@@ -1783,15 +1785,15 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                 totalFail = fc; 
             }
 
-
+            playerGems[actor] = gem;
             player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable
         {
             { "finalGem", gem },
             { "totalFail", totalFail }
         });
         }
-        ExportTurnDurationsCsv();
-        ExportPlayerSummaryCsv();
+
+        StartCoroutine(ExportAfterDelay(0.2f));
         StartCoroutine(LoadEndSceneWithDelay(1f));
     }
 
@@ -2071,8 +2073,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             int finalGem = 0;
             if (player.CustomProperties.ContainsKey("finalGem"))
                 finalGem = (int)player.CustomProperties["finalGem"];
-            else if (playerGems.TryGetValue(actorNumber, out var localGem))
-                finalGem = localGem;
+            //else if (playerGems.TryGetValue(actorNumber, out var localGem))
+                //finalGem = localGem;
 
             // 總失敗次數（優先使用回合累加，其次 failCounts，再其次 customProperties）
             int totalFail = 0;
@@ -2123,7 +2125,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         Debug.Log($"結算數據已匯出到桌面：{path}");
 #endif
     }
-
+    private IEnumerator ExportAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        ExportTurnDurationsCsv();
+        ExportPlayerSummaryCsv();
+    }
 
 
 
