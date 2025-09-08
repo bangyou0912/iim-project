@@ -78,6 +78,8 @@ MonoBehaviour:
   - RPC_SetPublicCardSelection
   - RPC_ShowDiceResult
   - RPC_StartDiceRoll
+  - RPC_PublicCardHover
+  - RPC_PublicCardSelect
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

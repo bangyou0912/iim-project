@@ -280,6 +280,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             if (sel != null)
             {
                 sel.Init(tex);
+                sel.cardIndex = i;                // 指定索引（位置型索引，與 publicCards List 對齊）
                 publicCards.Add(sel);
             }
 
@@ -2166,5 +2167,26 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     {
         if (isShuttingDown) return; // 結束流程中就不播
         StartCoroutine(PlayMixCoroutine(new List<string>(componentNames), resultName));
+    }
+
+    [PunRPC]
+    public void RPC_PublicCardHover(int cardIndex, bool hover)
+    {
+        if (cardIndex < 0 || cardIndex >= publicCards.Count) return;
+        var card = publicCards[cardIndex];
+        if (card == null) return;
+
+        card.ApplyHoverVisual(hover);
+    }
+
+    [PunRPC]
+    public void RPC_PublicCardSelect(int cardIndex)
+    {
+        // 先全部取消，再選卡（排他選取）
+        for (int i = 0; i < publicCards.Count; i++)
+        {
+            var c = publicCards[i];
+            if (c != null) c.ApplySelectVisual(i == cardIndex);
+        }
     }
 }

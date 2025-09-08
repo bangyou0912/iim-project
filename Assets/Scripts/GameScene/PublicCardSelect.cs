@@ -9,6 +9,9 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
     private bool isSelected = false;
     public bool isHovering = false;
 
+    //新增：這張公牌在場上的索引（0,1,2,3…）
+    public int cardIndex = -1;
+
     private Vector3 originalPos;
     private Vector3 targetPos;
     private Vector3 originalScale;
@@ -54,75 +57,77 @@ public class PublicCardSelect : MonoBehaviour, IPointerEnterHandler, IPointerExi
         transform.localEulerAngles = new Vector3(0, 0, newZ);
     }
 
-    public void OnPointerEnter(PointerEventData eventData)
+    // 抽成方法：套用 hover 視覺（可被 RPC 呼叫）
+    public void ApplyHoverVisual(bool hover)
     {
-        isHovering = true;
-        targetPos = originalPos + new Vector3(0, floatY, 0);
-        targetScale = originalScale * scaleUp;
-        targetAngle = 0f;
+        isHovering = hover;
 
-        if (highlighted != null)
-            highlighted.gameObject.SetActive(true);
-
-        transform.SetAsLastSibling();
-
-        /*
-        if (GameSceneManager.Instance != null &&
-        GameSceneManager.Instance.enableRealtimeTips &&
-        GameSceneManager.Instance.hoverTipText != null)
-        {
-            string tip = GameSceneManager.Instance.GetMixingTip(cardColorName);
-            GameSceneManager.Instance.hoverTipText.text = tip;
-            GameSceneManager.Instance.TipPanel.gameObject.SetActive(true);
-            GameSceneManager.Instance.hoverTipText.gameObject.SetActive(true);
-            GameSceneManager.Instance.HighlightMatchHandCards(cardColorName);
-        }
-        */
-    }
-
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        isHovering = false;
-        targetPos = originalPos;
-        targetScale = originalScale;
-        targetAngle = originalAngle;
-
-        if (highlighted != null)
-            highlighted.gameObject.SetActive(false);
-
-        /*
-        if (GameSceneManager.Instance != null && GameSceneManager.Instance.hoverTipText != null)
-        {
-            GameSceneManager.Instance.TipPanel.gameObject.SetActive(false);
-            GameSceneManager.Instance.hoverTipText.gameObject.SetActive(false);
-            GameSceneManager.Instance.ClearAllHandCardHover();
-        }
-        */
-    }
-
-    public void OnPointerClick(PointerEventData eventData)
-    {
-        GameSceneManager.Instance.OnPublicCardClicked(this);
-    }
-    public void SetSelected(bool selected)
-    {
-        isSelected = selected;
-        if (highlighted != null)
-            highlighted.gameObject.SetActive(selected);
-
-        if (selected)
+        if (hover)
         {
             targetPos = originalPos + new Vector3(0, floatY, 0);
             targetScale = originalScale * scaleUp;
             targetAngle = 0f;
+            if (highlighted != null) highlighted.gameObject.SetActive(true);
+            transform.SetAsLastSibling();
         }
         else
         {
             targetPos = originalPos;
             targetScale = originalScale;
             targetAngle = originalAngle;
+            if (highlighted != null) highlighted.gameObject.SetActive(isSelected); // 若已被選中，維持黃框
         }
     }
+
+    //抽成方法：套用選取視覺（可被 RPC 呼叫）
+    public void ApplySelectVisual(bool selected)
+    {
+        isSelected = selected;
+
+        if (selected)
+        {
+            targetPos = originalPos + new Vector3(0, floatY, 0);
+            targetScale = originalScale * scaleUp;
+            targetAngle = 0f;
+            if (highlighted != null) highlighted.gameObject.SetActive(true);
+        }
+        else
+        {
+            targetPos = originalPos;
+            targetScale = originalScale;
+            targetAngle = originalAngle;
+            if (highlighted != null) highlighted.gameObject.SetActive(false);
+        }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        // 本地立即套用（手感好）
+        ApplyHoverVisual(true);
+
+        //廣播給所有人（包含自己），同步 hover
+        if (cardIndex >= 0 && GameSceneManager.Instance != null)
+            GameSceneManager.Instance.photonView.RPC("RPC_PublicCardHover", Photon.Pun.RpcTarget.All, cardIndex, true);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        ApplyHoverVisual(false);
+        if (cardIndex >= 0 && GameSceneManager.Instance != null)
+            GameSceneManager.Instance.photonView.RPC("RPC_PublicCardHover", Photon.Pun.RpcTarget.All, cardIndex, false);
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        // 先同步選取視覺（會自動把其他公牌的選取取消）
+        if (cardIndex >= 0 && GameSceneManager.Instance != null)
+            GameSceneManager.Instance.photonView.RPC("RPC_PublicCardSelect", Photon.Pun.RpcTarget.All, cardIndex);
+
+        // 再執行本地邏輯（只有點的人需要跳出確認面板等）
+        GameSceneManager.Instance.OnPublicCardClicked(this);
+    }
+
+    public void SetSelected(bool selected) => ApplySelectVisual(selected);
 
     public void ChangeCardTo(Texture2D newTex)
     {
