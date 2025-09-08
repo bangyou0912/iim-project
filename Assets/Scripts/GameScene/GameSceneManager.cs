@@ -868,7 +868,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         if (enableRealtimeTips && colorMixingRules.ContainsKey(targetColor))
         {
             CloseConfirmPanel();
-            List<string> recipe = colorMixingRules[targetColor][0];
+            var recipe = colorMixingRules[targetColor][0];
+
+            // 1) 廣播給所有客戶端一起播放動畫（包含自己）
+            photonView.RPC(nameof(RPC_PlayMixAnimation), RpcTarget.All, recipe.ToArray(), targetColor);
+
+            // 2) 本地端仍然等待動畫跑完，再繼續成功/失敗後續邏輯
             yield return StartCoroutine(PlayMixCoroutine(recipe, targetColor));
         }
 
@@ -2154,5 +2159,12 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     void RPC_BeginShutdown()
     {
         isShuttingDown = true;
+    }
+
+    [PunRPC]
+    public void RPC_PlayMixAnimation(string[] componentNames, string resultName)
+    {
+        if (isShuttingDown) return; // 結束流程中就不播
+        StartCoroutine(PlayMixCoroutine(new List<string>(componentNames), resultName));
     }
 }

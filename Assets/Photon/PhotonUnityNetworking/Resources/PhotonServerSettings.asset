@@ -74,6 +74,10 @@ MonoBehaviour:
   - RPC_AddCurrentTurnGemSpent
   - RPC_AddCurrentTurnGemGained
   - RPC_BeginShutdown
+  - RPC_PlayMixAnimation
+  - RPC_SetPublicCardSelection
+  - RPC_ShowDiceResult
+  - RPC_StartDiceRoll
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1
