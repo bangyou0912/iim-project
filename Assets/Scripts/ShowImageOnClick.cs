@@ -1,52 +1,19 @@
-/*using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.UI;
-
-public class ShowOrHideImageOnClick : MonoBehaviour
-{
-    public Button toggleButton;   // 拖曳按鈕進來
-    public GameObject imageObj;   // 拖曳要切換的Image進來
-    public GameObject darkBackground;//黑色背景
-
-    void Start()
-    {
-        if (toggleButton != null)
-        {
-            toggleButton.onClick.AddListener(ToggleImage);
-        }
-
-        if (imageObj != null)
-        {
-            imageObj.SetActive(false); // 一開始圖片隱藏
-        }
-        //取消按鈕的選取狀態，避免Enter觸發
-        EventSystem.current.SetSelectedGameObject(null);
-    }
-        void ToggleImage()
-     {
-         if (imageObj != null)
-         {
-
-            imageObj.SetActive(!imageObj.activeSelf);// 切換目前狀態
-            darkBackground.SetActive(imageObj.activeSelf);
-            imageObj.transform.SetAsLastSibling();
-            toggleButton.transform.SetAsLastSibling();
-         }
-     }
-}*/
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 public class ShowOrHideImageOnClick : MonoBehaviour
 {
-    public Button toggleButton;       // 拖曳按鈕
-    public GameObject imageObj;       // 提示面板
-    public GameObject darkBackground; // 黑色背景
+    [Header("UI 參考")]
+    [SerializeField] private Button toggleButton;       // 觸發顯示/隱藏的按鈕
+    [SerializeField] private GameObject imageObj;       // 要顯示/隱藏、並記錄開啟時長的物件
+    [SerializeField] private GameObject darkBackground; // 暗色背景
 
+    // 內部狀態
     private bool isHintOpen = false;
 
-    void Start()
+    private void Start()
     {
         if (toggleButton != null)
             toggleButton.onClick.AddListener(ToggleImage);
@@ -54,28 +21,95 @@ public class ShowOrHideImageOnClick : MonoBehaviour
         if (imageObj != null)
             imageObj.SetActive(false);
 
-        EventSystem.current.SetSelectedGameObject(null);
+        if (darkBackground != null)
+            darkBackground.SetActive(false);
+
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
     }
 
-    void ToggleImage()
+    /// <summary>
+    /// 由按鈕點擊觸發：切換 imageObj 顯示/隱藏
+    /// </summary>
+    private void ToggleImage()
     {
         if (imageObj == null) return;
+        SetHintVisible(!imageObj.activeSelf);
+    }
 
-        bool nowActive = !imageObj.activeSelf;
-        imageObj.SetActive(nowActive);
-        darkBackground.SetActive(nowActive);
+    /// <summary>
+    /// 封裝顯示/隱藏行為（含時間紀錄通知）
+    /// </summary>
+    private void SetHintVisible(bool visible)
+    {
+        if (imageObj == null) return;
+        if (imageObj.activeSelf == visible) return; // 狀態相同就不重做
 
-        imageObj.transform.SetAsLastSibling();
-        toggleButton.transform.SetAsLastSibling();
-//只記錄打開提示
-        if (nowActive && !isHintOpen)
+        imageObj.SetActive(visible);
+        if (darkBackground != null) darkBackground.SetActive(visible);
+
+        if (visible)
         {
-            isHintOpen = true;
-            GameSceneManager.Instance?.OnHintButtonClicked();
+            // 置頂以確保顯示在最上層
+            imageObj.transform.SetAsLastSibling();
+            if (toggleButton != null) toggleButton.transform.SetAsLastSibling();
+
+            if (!isHintOpen)
+            {
+                isHintOpen = true;
+                GameSceneManager.Instance?.NotifyHintImageOpened(); //通知開始計時
+            }
         }
-        else if (!nowActive)
+        else
         {
-            isHintOpen = false;
+            if (isHintOpen)
+            {
+                isHintOpen = false;
+                GameSceneManager.Instance?.NotifyHintImageClosed(); //通知結束計時
+            }
         }
     }
+
+    private void Update()
+    {
+        // 在輸入框打字時不處理 Esc（避免誤關）
+        if (Input.GetKeyDown(KeyCode.Escape) && !IsTypingInField())
+        {
+            if (imageObj != null && imageObj.activeSelf)
+            {
+                SetHintVisible(false); // Esc 只關閉，不開啟
+            }
+        }
+
+        // 保險：若外部程式把 imageObj 關掉，也補記關閉事件，避免漏算尾巴
+        if (imageObj != null && !imageObj.activeSelf && isHintOpen)
+        {
+            isHintOpen = false;
+            GameSceneManager.Instance?.NotifyHintImageClosed();
+        }
+    }
+
+    // 避免在輸入欄位聚焦時誤觸 Esc
+    private bool IsTypingInField()
+    {
+        if (EventSystem.current == null) return false;
+        var go = EventSystem.current.currentSelectedGameObject;
+        if (go == null) return false;
+
+        // 支援 Unity 的 InputField 與 TextMeshPro 的 TMP_InputField
+        return go.GetComponent<InputField>() != null || go.GetComponent<TMP_InputField>() != null;
+    }
+
+    private void OnDisable()
+    {
+        // 腳本被停用時，若還開著就補關閉與通知（避免漏記）
+        if (imageObj != null && imageObj.activeSelf)
+        {
+            SetHintVisible(false);
+        }
+    }
+
+    // 若你需要在其他腳本直接開/關，可公開這兩個方法：
+    public void OpenHint() => SetHintVisible(true);
+    public void CloseHint() => SetHintVisible(false);
 }

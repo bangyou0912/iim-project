@@ -80,6 +80,10 @@ MonoBehaviour:
   - RPC_StartDiceRoll
   - RPC_PublicCardHover
   - RPC_PublicCardSelect
+  - RPC_HintPanelClosed
+  - RPC_HintPanelOpened
+  - RPC_HintImageClosed
+  - RPC_HintImageOpened
   DisableAutoOpenWizard: 1
   ShowSettings: 0
   DevRegionSetOnce: 1

@@ -161,8 +161,8 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             playerGems[player.ActorNumber] = 3;
             discardCounts[player.ActorNumber] = 0;
             playerTurnDurations[player.ActorNumber] = new List<float>();
-            playerTurnHintClicks[player.ActorNumber] = new List<int>();
-            currentTurnHintClicks[player.ActorNumber] = 0;
+            currentTurnHintOpenSeconds[player.ActorNumber] = 0f;
+            playerTurnHintOpenSeconds[player.ActorNumber] = new List<float>();
             playerTurnGemSpent[player.ActorNumber] = new List<int>();
             playerTurnDiscard[player.ActorNumber] = new List<int>();
             playerTurnFail[player.ActorNumber] = new List<int>();
@@ -1871,44 +1871,46 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     -------------------------------------------------------------------------------------------------------------------------------------
     */
 
-    public void OnHintButtonClicked()//點擊提示次數
+    public void NotifyHintImageOpened()
     {
         int actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
-        photonView.RPC(nameof(RPC_RecordHintClick), RpcTarget.All, actorNumber);
+        photonView.RPC(nameof(RPC_HintImageOpened), RpcTarget.MasterClient, actorNumber, PhotonNetwork.Time);
+    }
+
+    public void NotifyHintImageClosed()
+    {
+        int actorNumber = PhotonNetwork.LocalPlayer.ActorNumber;
+        photonView.RPC(nameof(RPC_HintImageClosed), RpcTarget.MasterClient, actorNumber, PhotonNetwork.Time);
     }
 
     [PunRPC]
-    void RPC_RecordHintClick(int actorNumber)
+    void RPC_HintImageOpened(int actorNumber, double openedAtNetworkTime)
     {
-        var player = PhotonNetwork.CurrentRoom.GetPlayer(actorNumber);
-        if (player == null) return;
+        if (!PhotonNetwork.IsMasterClient) return;
+        if (!hintPanelOpenedAt.ContainsKey(actorNumber))
+            hintPanelOpenedAt[actorNumber] = openedAtNetworkTime;
+    }
 
-        int clickCount = 0;
-        if (player.CustomProperties.ContainsKey("hintClickCount"))
-            clickCount = (int)player.CustomProperties["hintClickCount"];
+    [PunRPC]
+    void RPC_HintImageClosed(int actorNumber, double closedAtNetworkTime)
+    {
+        if (!PhotonNetwork.IsMasterClient) return;
 
-        clickCount++;
-        player.SetCustomProperties(new ExitGames.Client.Photon.Hashtable
+        if (hintPanelOpenedAt.TryGetValue(actorNumber, out double startedAt))
         {
-            { "hintClickCount", clickCount }
-        });
+            float delta = Mathf.Max(0f, (float)(closedAtNetworkTime - startedAt));
+            if (!currentTurnHintOpenSeconds.ContainsKey(actorNumber))
+                currentTurnHintOpenSeconds[actorNumber] = 0f;
 
-        if (PhotonNetwork.IsMasterClient)
-        {
-            if (!currentTurnHintClicks.ContainsKey(actorNumber))
-                currentTurnHintClicks[actorNumber] = 0;
-            currentTurnHintClicks[actorNumber]++;
+            currentTurnHintOpenSeconds[actorNumber] += delta;
+            hintPanelOpenedAt.Remove(actorNumber);
         }
-        Debug.Log($"玩家 {actorNumber} 點擊提示，總次數: {clickCount}");
     }
     private Dictionary<int, List<float>> playerTurnDurations = new Dictionary<int, List<float>>();
 
-    // 新增：每位玩家每回合提示次數（每回合一個整數）
-    private Dictionary<int, List<int>> playerTurnHintClicks = new Dictionary<int, List<int>>();
-
-    // 新增：目前這一回合已點提示次數（回合結束會歸零）
-    private Dictionary<int, int> currentTurnHintClicks = new Dictionary<int, int>();
-
+    private Dictionary<int, List<float>> playerTurnHintOpenSeconds = new Dictionary<int, List<float>>();    //每回合提示面板「總開啟秒數」
+    private Dictionary<int, float> currentTurnHintOpenSeconds = new Dictionary<int, float>();   //本回合已累積的提示面板開啟秒數
+    private Dictionary<int, double> hintPanelOpenedAt = new Dictionary<int, double>();  //面板是否開著 & 開始時間
     private Dictionary<int, List<int>> playerTurnGemSpent = new Dictionary<int, List<int>>();   // 每回合花費寶石
     private Dictionary<int, List<int>> playerTurnDiscard = new Dictionary<int, List<int>>();   // 每回合是否棄牌(0/1)
     private Dictionary<int, List<int>> playerTurnFail = new Dictionary<int, List<int>>();   // 每回合失敗次數
@@ -1944,12 +1946,21 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             playerTurnDurations[actorNumber] = new List<float>();
         playerTurnDurations[actorNumber].Add(seconds);
 
-        // 2) 當回合提示次數 → 歸檔 + 清零
-        if (!playerTurnHintClicks.ContainsKey(actorNumber))
-            playerTurnHintClicks[actorNumber] = new List<int>();
-        int hintThisTurn = currentTurnHintClicks.TryGetValue(actorNumber, out var h) ? h : 0;
-        playerTurnHintClicks[actorNumber].Add(hintThisTurn);
-        currentTurnHintClicks[actorNumber] = 0;
+        // 2)在回合結束瞬間，若提示面板仍是「開著」，先把這段補算進去
+        if (PhotonNetwork.IsMasterClient && hintPanelOpenedAt.TryGetValue(actorNumber, out double openedAt))
+        {
+            float tail = Mathf.Max(0f, (float)(PhotonNetwork.Time - openedAt));
+            if (!currentTurnHintOpenSeconds.ContainsKey(actorNumber))
+                currentTurnHintOpenSeconds[actorNumber] = 0f;
+            currentTurnHintOpenSeconds[actorNumber] += tail;
+            hintPanelOpenedAt.Remove(actorNumber);
+        }
+        // 歸檔本回合的提示面板開啟總秒數
+        if (!playerTurnHintOpenSeconds.ContainsKey(actorNumber))
+            playerTurnHintOpenSeconds[actorNumber] = new List<float>();
+        float hintSecThisTurn = currentTurnHintOpenSeconds.TryGetValue(actorNumber, out var hs) ? hs : 0f;
+        playerTurnHintOpenSeconds[actorNumber].Add(hintSecThisTurn);
+        currentTurnHintOpenSeconds[actorNumber] = 0f;
 
         // 3) 當回合寶石消耗 → 歸檔 + 清零
         if (!playerTurnGemSpent.ContainsKey(actorNumber))
@@ -1979,7 +1990,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         currentTurnGemGained[actorNumber] = 0;
 
         Debug.Log($"[TurnEnd] Actor {actorNumber} 回合#{playerTurnDurations[actorNumber].Count}: " +
-                  $"Time={seconds:F2}s, Hint={hintThisTurn}, Gem={gemThisTurn}, Discard={discardThisTurn}, Fail={failThisTurn}");
+                  $"Time={seconds:F2}s, Hint={hintSecThisTurn:F2}, Gem={gemThisTurn}, Discard={discardThisTurn}, Fail={failThisTurn}");
     }
     public void ExportTurnDurationsCsv()
     {
@@ -1989,7 +2000,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string fileName = $"{timestamp}_回合數據.csv";
 
         var sb = new StringBuilder();
-        sb.AppendLine("玩家名稱,玩家編號,回合,回合用時(秒),查看提示次數,花費寶石,棄牌次數,失敗次數,寶石獎勵");
+        sb.AppendLine("玩家名稱,玩家編號,回合,回合用時(秒),查看提示總時長(秒),花費寶石,棄牌次數,失敗次數,寶石獎勵");
 
         foreach (var p in PhotonNetwork.PlayerList)
         {
@@ -1997,7 +2008,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             string name = p.NickName;
 
             playerTurnDurations.TryGetValue(actor, out var times);
-            playerTurnHintClicks.TryGetValue(actor, out var hints);
+            playerTurnHintOpenSeconds.TryGetValue(actor, out var hintSecs);
             playerTurnGemSpent.TryGetValue(actor, out var gemsSpent);
             playerTurnDiscard.TryGetValue(actor, out var discards);
             playerTurnFail.TryGetValue(actor, out var fails);
@@ -2009,13 +2020,13 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
             for (int i = 0; i < n; i++)
             {
                 float sec = times[i];
-                int usedHint = (hints != null && i < hints.Count) ? hints[i] : 0;
+                float hintSec = (hintSecs != null && i < hintSecs.Count) ? hintSecs[i] : 0f;
                 int gemSpent = (gemsSpent != null && i < gemsSpent.Count) ? gemsSpent[i] : 0;
                 int didDiscard = (discards != null && i < discards.Count) ? discards[i] : 0;
                 int failCount = (fails != null && i < fails.Count) ? fails[i] : 0;
                 int gemReward = (gemsGained != null && i < gemsGained.Count) ? gemsGained[i] : 0;
 
-                sb.AppendLine($"{name},{actor},{i + 1},{sec:F2},{usedHint},{gemSpent},{didDiscard},{failCount},{gemReward}");
+                sb.AppendLine($"{name},{actor},{i + 1},{sec:F2},{hintSec:F2},{gemSpent},{didDiscard},{failCount},{gemReward}");
             }
         }
 
@@ -2063,17 +2074,18 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
         string fileName = $"{timestamp}_結算數據.csv";
 
         var sb = new StringBuilder();
-        sb.AppendLine("玩家名稱,玩家編號,查看提示總次數,最終寶石數,總失敗次數");
+        sb.AppendLine("玩家名稱,玩家編號,查看提示總時長(秒),最終寶石數,總失敗次數");
 
         foreach (var player in PhotonNetwork.PlayerList)
         {
             string name = player.NickName;
             int actorNumber = player.ActorNumber;
 
-            // 總提示次數
-            int totalHintClicks = 0;
-            if (player.CustomProperties.ContainsKey("hintClickCount"))
-                totalHintClicks = (int)player.CustomProperties["hintClickCount"];
+            float totalHintSeconds = 0f;
+            if (playerTurnHintOpenSeconds != null && playerTurnHintOpenSeconds.TryGetValue(actorNumber, out var hintList) && hintList != null)
+            {
+                for (int i = 0; i < hintList.Count; i++) totalHintSeconds += hintList[i];
+            }
 
             // 最終寶石數量
             int finalGem = 0;
@@ -2097,7 +2109,7 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
                 totalFail = (int)player.CustomProperties["totalFail"];
             }
 
-            sb.AppendLine($"{name},{actorNumber},{totalHintClicks},{finalGem},{totalFail}");
+            sb.AppendLine($"{name},{actorNumber},{totalHintSeconds:F2},{finalGem},{totalFail}");
         }
 
         // ====== 先上傳到 Google Sheets ======
@@ -2160,6 +2172,21 @@ public class GameSceneManager : MonoBehaviourPunCallbacks
     void RPC_BeginShutdown()
     {
         isShuttingDown = true;
+        if (PhotonNetwork.IsMasterClient)
+        {
+            double now = PhotonNetwork.Time;
+            foreach (var kv in new Dictionary<int, double>(hintPanelOpenedAt))
+            {
+                int actor = kv.Key;
+                double openedAt = kv.Value;
+                float delta = Mathf.Max(0f, (float)(now - openedAt));
+                if (!currentTurnHintOpenSeconds.ContainsKey(actor))
+                    currentTurnHintOpenSeconds[actor] = 0f;
+                currentTurnHintOpenSeconds[actor] += delta;
+                hintPanelOpenedAt.Remove(actor);
+            }
+        }
+
     }
 
     [PunRPC]
